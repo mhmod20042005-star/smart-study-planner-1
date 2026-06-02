@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Study Planner</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue:      #1a56db;
+      --blue-dark: #1e429f;
+      --blue-light:#ebf5ff;
+      --green:     #057a55;
+      --green-bg:  #def7ec;
+      --red:       #c81e1e;
+      --red-bg:    #fde8e8;
+      --yellow-bg: #fdf6b2;
+      --yellow:    #9f580a;
+      --grey-bg:   #f9fafb;
+      --grey-border:#e5e7eb;
+      --text:      #111827;
+      --text-muted:#6b7280;
+      --radius:    8px;
+      --shadow:    0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+      --shadow-md: 0 4px 6px rgba(0,0,0,.1);
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f3f4f6;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Navbar ───────────────────────────────────── */
+    nav {
+      background: var(--blue-dark);
+      color: #fff;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav .brand { font-size: 1.15rem; font-weight: 700; letter-spacing: .3px; }
+    nav .brand span { opacity: .65; font-weight: 400; margin-left: 10px; font-size: .9rem; }
+    nav .nav-links { display: flex; gap: 4px; }
+    nav .nav-links button {
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,.8);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: .9rem;
+      transition: background .15s, color .15s;
+    }
+    nav .nav-links button:hover,
+    nav .nav-links button.active { background: rgba(255,255,255,.15); color: #fff; }
+    #logout-btn { display: none; background: rgba(255,255,255,.12) !important; color: #fff !important; }
+
+    /* ── Layout ───────────────────────────────────── */
+    .page { display: none; max-width: 900px; margin: 32px auto; padding: 0 16px 40px; }
+    .page.active { display: block; }
+
+    /* ── Cards ────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .card h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 18px; color: var(--blue-dark); }
+    .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+
+    /* ── Forms ────────────────────────────────────── */
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; color: var(--text-muted); }
+    input, select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--grey-border);
+      border-radius: var(--radius);
+      font-size: .95rem;
+      outline: none;
+      transition: border .15s;
+    }
+    input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,.15); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ── Buttons ──────────────────────────────────── */
+    .btn {
+      padding: 9px 20px; border: none; border-radius: var(--radius);
+      font-size: .9rem; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s;
+    }
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(.98); }
+    .btn-primary  { background: var(--blue);  color: #fff; }
+    .btn-success  { background: var(--green); color: #fff; }
+    .btn-danger   { background: var(--red);   color: #fff; font-size: .82rem; padding: 5px 10px; }
+    .btn-complete { background: #0e9f6e; color: #fff; font-size: .82rem; padding: 5px 10px; }
+    .btn-sm       { padding: 5px 12px; font-size: .82rem; }
+
+    /* ── Alerts ───────────────────────────────────── */
+    .alert {
+      padding: 10px 14px; border-radius: var(--radius);
+      margin-bottom: 14px; font-size: .9rem; display: none;
+    }
+    .alert.show { display: block; }
+    .alert-success { background: var(--green-bg); color: var(--green); }
+    .alert-error   { background: var(--red-bg);   color: var(--red); }
+    .alert-info    { background: var(--blue-light);color: var(--blue-dark); }
+
+    /* ── Tables / Lists ───────────────────────────── */
+    .item-list { list-style: none; }
+    .item-card {
+      background: var(--grey-bg);
+      border: 1px solid var(--grey-border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .item-card.completed { opacity: .55; text-decoration: line-through; }
+    .item-info { flex: 1; }
+    .item-info .item-title { font-weight: 600; font-size: .95rem; }
+    .item-info .item-meta  { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+    .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ── Dashboard chips ──────────────────────────── */
+    .chip {
+      display: inline-block; padding: 2px 8px; border-radius: 99px;
+      font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .chip-assignment { background: #e0f2fe; color: #075985; }
+    .chip-exam       { background: #fce7f3; color: #9d174d; }
+    .chip-today      { background: var(--red-bg); color: var(--red); }
+    .chip-soon       { background: var(--yellow-bg); color: var(--yellow); }
+    .chip-ok         { background: var(--green-bg); color: var(--green); }
+
+    /* ── Study Plan ───────────────────────────────── */
+    .plan-day { margin-bottom: 18px; }
+    .plan-day .day-header {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      color: var(--text-muted); letter-spacing: .6px; margin-bottom: 6px;
+      padding-bottom: 4px; border-bottom: 1px solid var(--grey-border);
+    }
+    .plan-block {
+      background: var(--blue-light); border-left: 3px solid var(--blue);
+      padding: 8px 12px; border-radius: 0 var(--radius) var(--radius) 0;
+      margin-bottom: 6px; font-size: .88rem;
+    }
+    .plan-block.exam-block { background: #fce7f3; border-color: #be185d; }
+
+    /* ── Auth page ────────────────────────────────── */
+    #auth-page { max-width: 420px; }
+    .tab-switcher { display: flex; gap: 0; margin-bottom: 22px; }
+    .tab-switcher button {
+      flex: 1; padding: 9px; border: 1px solid var(--grey-border);
+      background: var(--grey-bg); cursor: pointer; font-size: .92rem; font-weight: 600;
+      transition: background .15s, color .15s;
+    }
+    .tab-switcher button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+    .tab-switcher button:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+    .tab-switcher button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* ── Empty state ──────────────────────────────── */
+    .empty { text-align: center; color: var(--text-muted); padding: 28px 0; font-size: .95rem; }
+    .empty .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+    /* ── Section tabs (within pages) ──────────────── */
+    .section-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .section-tabs button {
+      padding: 6px 16px; border: 1px solid var(--grey-border);
+      background: #fff; border-radius: 99px; cursor: pointer;
+      font-size: .85rem; font-weight: 600; color: var(--text-muted);
+      transition: all .15s;
+    }
+    .section-tabs button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* ── Edit-assignment inline form ─────────────────── */
+    .btn-edit     { background: #6366f1; color: #fff; font-size: .82rem; padding: 5px 10px; }
+    .btn-save     { background: #0e9f6e; color: #fff; font-size: .82rem; padding: 5px 10px; }
+    .btn-cancel   { background: #9ca3af; color: #fff; font-size: .82rem; padding: 5px 10px; }
+    .edit-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .edit-form .edit-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .edit-form input, .edit-form select {
+      padding: 6px 10px; font-size: .88rem;
+      border: 1px solid var(--grey-border); border-radius: var(--radius); width: 100%;
+    }
+    .edit-form input:focus, .edit-form select:focus {
+      border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); outline: none;
+    }
+    .edit-form .edit-actions { display: flex; gap: 6px; }
+    .item-card.editing { flex-direction: column; align-items: flex-start; }
+
+    /* ── Hub / Chat ───────────────────────────────────── */
+    .btn-hub    { background: #0891b2; color: #fff; font-size: .82rem; padding: 5px 10px; }
+    .hub-meta   { font-size: .85rem; color: var(--text-muted); margin-bottom: 14px; }
+    .chat-box   {
+      height: 360px; overflow-y: auto;
+      border: 1px solid var(--grey-border); border-radius: var(--radius);
+      padding: 12px; background: var(--grey-bg);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .chat-msg   {
+      max-width: 75%; padding: 8px 12px;
+      background: #fff; border-radius: var(--radius);
+      border: 1px solid var(--grey-border); box-shadow: var(--shadow);
+      align-self: flex-start;
+    }
+    .chat-msg.own-msg { background: var(--blue-light); align-self: flex-end; border-color: #bfdbfe; }
+    .msg-meta   { font-size: .74rem; color: var(--text-muted); margin-bottom: 3px; font-weight: 600; }
+    .msg-text   { font-size: .92rem; color: var(--text); word-break: break-word; }
+    .chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+    .chat-input-row input { flex: 1; }
+
+    /* ── Hub tabs ────────────────────────────────────── */
+    .hub-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--grey-border); }
+    .hub-tabs button {
+      padding: 8px 20px; border: none; background: transparent;
+      cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--text-muted);
+      border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .15s;
+    }
+    .hub-tabs button.active { color: #0891b2; border-bottom-color: #0891b2; }
+    .hub-tab-panel { display: none; }
+    .hub-tab-panel.active { display: block; }
+
+    /* ── Material cards ──────────────────────────────── */
+    .material-card {
+      background: var(--grey-bg); border: 1px solid var(--grey-border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+    }
+    .material-card .mat-title { font-weight: 600; font-size: .95rem; }
+    .material-card .mat-desc  { font-size: .85rem; color: var(--text-muted); margin: 4px 0; }
+    .material-card .mat-footer { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .upvote-btn {
+      background: #f0fdf4; border: 1px solid #86efac; color: #166534;
+      padding: 3px 10px; border-radius: 99px; cursor: pointer; font-size: .8rem; font-weight: 600;
+      transition: background .15s;
+    }
+    .upvote-btn:hover { background: #dcfce7; }
+    .badge {
+      display: inline-block; padding: 1px 7px; border-radius: 99px;
+      font-size: .76rem; font-weight: 700; background: #e0f2fe; color: #075985;
+    }
+
+    /* ── Q&A cards ───────────────────────────────────── */
+    .question-card {
+      background: var(--grey-bg); border: 1px solid var(--grey-border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px;
+    }
+    .question-card .q-text { font-weight: 600; font-size: .95rem; margin-bottom: 6px; }
+    .question-card .q-meta {
+      font-size: .8rem; color: var(--text-muted);
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .answer-card {
+      background: #fff; border: 1px solid var(--grey-border);
+      border-left: 3px solid #0891b2;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 10px 14px; margin: 6px 0 6px 16px;
+    }
+    .answer-card .a-text { font-size: .9rem; margin-bottom: 5px; word-break: break-word; }
+    .answer-card .a-meta {
+      font-size: .78rem; color: var(--text-muted);
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .helpful-btn {
+      background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8;
+      padding: 2px 9px; border-radius: 99px; cursor: pointer; font-size: .78rem; font-weight: 600;
+      transition: background .15s;
+    }
+    .helpful-btn:hover { background: #dbeafe; }
+    .report-btn {
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: .75rem; padding: 2px 6px; border-radius: var(--radius);
+      transition: color .15s;
+    }
+    .report-btn:hover { color: var(--red); }
+
+    /* ── Hub add-form ────────────────────────────────── */
+    .hub-add-form {
+      background: #fff; border: 1px solid var(--grey-border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 18px;
+    }
+    .hub-add-form h3 { font-size: .95rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+    .hub-hint { font-size: .78rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* -- Join code badge ---------------------------------------------------- */
+    .join-code-badge {
+      display: inline-block; background: #ecfdf5; color: #065f46;
+      border: 1px solid #6ee7b7; border-radius: 6px;
+      padding: 2px 8px; font-size: .78rem; font-weight: 700;
+      letter-spacing: .5px; font-family: monospace;
+    }
+
+    /* -- Activity feed cards ------------------------------------------------- */
+    .activity-card {
+      border-radius: var(--radius); padding: 12px 14px;
+      margin-bottom: 8px; background: #fff;
+      border: 1px solid var(--grey-border); border-left-width: 4px;
+    }
+    .activity-chat     { border-left-color: #7c3aed; background: #faf5ff; }
+    .activity-question { border-left-color: #2563eb; background: #eff6ff; }
+    .activity-file     { border-left-color: #dc2626; background: #fef2f2; }
+    .activity-url      { border-left-color: #059669; background: #f0fdf4; }
+    .activity-meta {
+      font-size: .78rem; color: var(--text-muted); margin-top: 4px;
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="brand">📚 Smart Study Planner <span id="nav-user"></span></div>
+  <div class="nav-links" id="nav-links">
+    <button onclick="showPage('auth-page')"        id="nav-auth"        class="active">Login / Register</button>
+    <button onclick="showPage('dashboard-page')"   id="nav-dashboard"  >Dashboard</button>
+    <button onclick="showPage('courses-page')"     id="nav-courses"    >Courses</button>
+    <button onclick="showPage('assignments-page')" id="nav-assignments" >Assignments</button>
+    <button onclick="showPage('exams-page')"       id="nav-exams"      >Exams</button>
+    <button onclick="showPage('plan-page')"        id="nav-plan"       >Study Plan</button>
+    <button onclick="showPage('hub-page')"         id="nav-hub"        >💬 Hub</button>
+    <button onclick="logout()"                     id="logout-btn"     >Logout</button>
+  </div>
+</nav>
+
+<!-- AUTH PAGE -->
+<div class="page active" id="auth-page">
+  <div class="card">
+    <div class="tab-switcher">
+      <button class="active" id="tab-login"    onclick="switchTab('login')">Login</button>
+      <button                id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+    <div id="auth-alert" class="alert"></div>
+    <div id="login-form">
+      <h2>Welcome back</h2>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="login-username" placeholder="Enter your username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter your password" />
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Login</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <h2>Create an account</h2>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="reg-username" placeholder="Choose a username" />
+      </div>
+      <div class="form-group">
+        <label>Password <small style="color:var(--text-muted)">(min 6 characters)</small></label>
+        <input type="password" id="reg-password" placeholder="Choose a password" />
+      </div>
+      <button class="btn btn-success" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="dashboard-page">
+  <div class="card">
+    <h2>📋 Upcoming Deadlines <small style="font-size:.8rem;font-weight:400;color:var(--text-muted)">— next 14 days</small></h2>
+    <div id="dashboard-alert" class="alert"></div>
+    <ul class="item-list" id="dashboard-list">
+      <div class="empty"><div class="empty-icon">🎉</div>Nothing due in the next 14 days!</div>
+    </ul>
+  </div>
+</div>
+
+<!-- COURSES PAGE -->
+<div class="page" id="courses-page">
+
+  <!-- ── Search existing courses at your institution ─────────────────────── -->
+  <div class="card">
+    <h2>&#128270; Find Courses at Your Institution</h2>
+    <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:14px">
+      Search for courses others have already created so you can join the shared hub
+      instead of creating a duplicate.
+    </p>
+    <div class="form-row" style="align-items:flex-end;gap:10px">
+      <div class="form-group" style="flex:1.2;margin-bottom:0">
+        <label>Institution</label>
+        <input type="text" id="search-institution"
+               placeholder="e.g. Ramat Gan College"
+               oninput="onSearchInput()" />
+      </div>
+      <div class="form-group" style="flex:2;margin-bottom:0">
+        <label>Course name or code</label>
+        <input type="text" id="search-query"
+               placeholder="e.g. Algorithms or CS201"
+               oninput="onSearchInput()" />
+      </div>
+    </div>
+    <div id="search-results" style="margin-top:14px"></div>
+  </div>
+
+  <!-- ── Create a new course ────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>&#10133; Create a Course</h2>
+    <div id="course-alert" class="alert"></div>
+    <!-- Duplicate warning banner (shown by JS when a similar course exists) -->
+    <div id="course-duplicate-warning" style="display:none;
+         background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;
+         padding:12px 16px;margin-bottom:14px;font-size:.9rem;color:#92400e">
+      <strong>&#9888;&#65039; Similar course found.</strong>
+      <span id="course-duplicate-msg"></span>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-success btn-sm" id="dup-join-btn"
+                onclick="joinDuplicateExisting()">&#128279; Join existing course</button>
+        <button class="btn btn-sm" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db"
+                onclick="forceCreateCourse()">Create new anyway</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Course Name *</label>
+        <input type="text" id="course-name" placeholder="e.g. Software Engineering" />
+      </div>
+      <div class="form-group">
+        <label>Institution <small style="color:var(--text-muted)">(recommended)</small></label>
+        <input type="text" id="course-institution" placeholder="e.g. Ramat Gan College" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Course Code <small style="color:var(--text-muted)">(strongly recommended — prevents duplicates)</small></label>
+      <input type="text" id="course-code" placeholder="e.g. CS201" style="max-width:220px" />
+    </div>
+    <button class="btn btn-primary" onclick="addCourse()">Create Course</button>
+  </div>
+
+  <!-- ── Join by code ───────────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>&#128279; Join by Code</h2>
+    <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:12px">
+      Enter the 6-character join code shared by a classmate or instructor.
+    </p>
+    <div id="join-alert" class="alert"></div>
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <div class="form-group" style="flex:1;margin-bottom:0">
+        <label>Join Code</label>
+        <input type="text" id="join-code-input" placeholder="e.g. AB12CD" maxlength="8"
+               style="text-transform:uppercase;font-family:monospace;font-size:1.05rem;letter-spacing:2px" />
+      </div>
+      <button class="btn btn-success" onclick="joinCourse()">Join</button>
+    </div>
+  </div>
+
+  <!-- ── My courses ─────────────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>&#128218; My Courses</h2>
+    <ul class="item-list" id="courses-list">
+      <div class="empty"><div class="empty-icon">&#128214;</div>No courses yet.</div>
+    </ul>
+  </div>
+</div>
+
+<!-- ASSIGNMENTS PAGE -->
+<div class="page" id="assignments-page">
+  <div class="card">
+    <h2>➕ Add Assignment</h2>
+    <div id="assignment-alert" class="alert"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="assign-title" placeholder="Assignment title" />
+      </div>
+      <div class="form-group">
+        <label>Course</label>
+        <select id="assign-course"><option value="">— select a course —</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Deadline</label>
+      <input type="date" id="assign-deadline" />
+    </div>
+    <button class="btn btn-primary" onclick="addAssignment()">Add Assignment</button>
+  </div>
+  <div class="card">
+    <h2>📝 My Assignments</h2>
+    <ul class="item-list" id="assignments-list">
+      <div class="empty"><div class="empty-icon">✅</div>No assignments yet.</div>
+    </ul>
+  </div>
+</div>
+
+<!-- EXAMS PAGE -->
+<div class="page" id="exams-page">
+  <div class="card">
+    <h2>➕ Add Exam</h2>
+    <div id="exam-alert" class="alert"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Course</label>
+        <select id="exam-course"><option value="">— select a course —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Exam Date</label>
+        <input type="date" id="exam-date" />
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addExam()">Add Exam</button>
+  </div>
+  <div class="card">
+    <h2>📅 My Exams</h2>
+    <ul class="item-list" id="exams-list">
+      <div class="empty"><div class="empty-icon">📅</div>No exams added yet.</div>
+    </ul>
+  </div>
+</div>
+
+<!-- STUDY PLAN PAGE -->
+<div class="page" id="plan-page">
+  <div class="card">
+    <h2>🗓️ Auto-Generated Study Plan <small style="font-size:.8rem;font-weight:400;color:var(--text-muted)">— next 30 days</small></h2>
+    <button class="btn btn-primary" onclick="loadStudyPlan()" style="margin-bottom:18px">Refresh Plan</button>
+    <div id="plan-alert" class="alert"></div>
+    <div id="plan-content">
+      <div class="empty"><div class="empty-icon">📚</div>Click "Refresh Plan" to generate your study schedule.</div>
+    </div>
+  </div>
+</div>
+
+<!-- HUB PAGE -->
+<div class="page" id="hub-page">
+  <div class="card">
+    <h2>&#128172; Course Hub &mdash; <span id="hub-course-title" style="color:#0891b2">&#8212;</span></h2>
+    <p class="hub-meta">Shared space for students in this course.</p>
+    <div id="hub-alert" class="alert"></div>
+
+    <div class="hub-tabs">
+      <button id="htab-chat"      class="active" onclick="switchHubTab('chat')"      >&#128172; Chat</button>
+      <button id="htab-materials"               onclick="switchHubTab('materials')"  >&#128206; Materials</button>
+      <button id="htab-qa"                      onclick="switchHubTab('qa')"         >&#10067; Q&amp;A</button>
+      <button id="htab-activity"                onclick="switchHubTab('activity')"   >&#9889; Activity</button>
+    </div>
+
+    <!-- CHAT panel -->
+    <div class="hub-tab-panel active" id="hub-panel-chat">
+      <div class="chat-box" id="chat-box">
+        <div class="empty"><div class="empty-icon">&#128172;</div>No messages yet. Be the first!</div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Type a message&#8230;" maxlength="1000" />
+        <button class="btn btn-primary" onclick="sendHubMessage()">Send</button>
+        <button class="btn btn-sm" style="background:var(--grey-bg);border:1px solid var(--grey-border)"
+                onclick="loadHubMessages()" title="Refresh">&#8635;</button>
+      </div>
+      <div class="hub-hint">Max 1000 characters &nbsp;|&nbsp; Press Enter to send</div>
+    </div>
+
+    <!-- MATERIALS panel -->
+    <div class="hub-tab-panel" id="hub-panel-materials">
+      <!-- Share link -->
+      <div class="hub-add-form">
+        <h3>Share a Resource</h3>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:10px">
+            <label>Title *</label>
+            <input type="text" id="mat-title" placeholder="e.g. Chapter 3 Summary" maxlength="200" />
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label>Link (URL) *</label>
+            <input type="url" id="mat-link" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Description (optional)</label>
+          <input type="text" id="mat-desc" placeholder="Brief description" />
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addHubMaterial()">Share Material</button>
+      </div>
+
+      <!-- Upload file -->
+      <div class="hub-add-form" style="border-left:3px solid #0891b2">
+        <h3>&#128196; Upload a File</h3>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:10px">
+            <label>Title *</label>
+            <input type="text" id="upl-title" placeholder="e.g. Lecture 4 Slides" maxlength="200" />
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label>Description (optional)</label>
+            <input type="text" id="upl-desc" placeholder="Brief description" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>File * <span class="hub-hint" style="display:inline">(pdf, doc, docx, ppt, pptx, txt, png, jpg, jpeg)</span></label>
+          <input type="file" id="upl-file"
+                 accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg"
+                 style="padding:5px 8px;font-size:.88rem" />
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="uploadHubFile()">&#128229; Upload File</button>
+        <span id="upl-status" style="margin-left:10px;font-size:.82rem;color:var(--text-muted)"></span>
+      </div>
+
+      <div id="materials-list">
+        <div class="empty"><div class="empty-icon">&#128206;</div>No materials shared yet.</div>
+      </div>
+    </div>
+
+    <!-- Q&A panel -->
+    <div class="hub-tab-panel" id="hub-panel-qa">
+      <div class="hub-add-form">
+        <h3>Ask a Question</h3>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Your Question *</label>
+          <input type="text" id="qa-question" placeholder="e.g. What topics are on the final exam?" maxlength="2000" />
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px">
+          <input type="checkbox" id="qa-anonymous" style="width:auto;padding:0" />
+          <label for="qa-anonymous" style="margin-bottom:0; font-size:.9rem; font-weight:400; color:var(--text)">Post anonymously</label>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="postHubQuestion()">Post Question</button>
+      </div>
+      <div id="qa-list">
+        <div class="empty"><div class="empty-icon">&#10067;</div>No questions yet.</div>
+      </div>
+    </div>
+
+    <!-- Activity panel -->
+    <div class="hub-tab-panel" id="hub-panel-activity">
+      <div style="margin-bottom:14px">
+        <button class="btn btn-sm" style="background:var(--grey-bg);border:1px solid var(--grey-border)"
+                onclick="loadHubActivity()">&#8635; Refresh Activity</button>
+      </div>
+      <div id="activity-list">
+        <div class="empty"><div class="empty-icon">&#9889;</div>No activity yet in this course hub.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- JAVASCRIPT -->
+<script>
+  'use strict';
+
+  const API = 'https://render-hw2.onrender.com';
+  let currentUser          = null;
+  let currentHubCourseId   = null;
+  let currentHubCourseName = null;
+  let currentHubTab        = 'chat';
+  let _assignmentsCache    = [];
+
+  // ── Utility ───────────────────────────────────────────────────────────────
+
+  function esc(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ── Alerts ────────────────────────────────────────────────────────────────
+
+  function showAlert(id, msg, type = 'error') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = `alert show alert-${type}`;
+    el.textContent = msg;
+    if (type !== 'error') setTimeout(() => el.classList.remove('show'), 3500);
+  }
+
+  function clearAlert(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = 'alert';
+    el.textContent = '';
+  }
+
+  // ── API helper ────────────────────────────────────────────────────────────
+
+  async function api(method, path, body) {
+    try {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res  = await fetch(API + path, opts);
+      const data = await res.json();
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      return { ok: false, status: 0, data: { error: 'Network error. Please check your connection.' } };
+    }
+  }
+
+  // ── Page / tab routing ────────────────────────────────────────────────────
+
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+
+    const navMap = {
+      'auth-page':        'nav-auth',
+      'dashboard-page':   'nav-dashboard',
+      'courses-page':     'nav-courses',
+      'assignments-page': 'nav-assignments',
+      'exams-page':       'nav-exams',
+      'plan-page':        'nav-plan',
+      'hub-page':         'nav-hub'
+    };
+    if (navMap[id]) document.getElementById(navMap[id]).classList.add('active');
+
+    if (!currentUser && id !== 'auth-page') { showPage('auth-page'); return; }
+    if (id === 'dashboard-page')   loadDashboard();
+    if (id === 'courses-page')     loadCourses();
+    if (id === 'assignments-page') { loadAssignments(); populateCourseDropdown('assign-course'); }
+    if (id === 'exams-page')       { loadExams(); populateCourseDropdown('exam-course'); }
+    if (id === 'plan-page')        loadStudyPlan();
+  }
+
+  function switchTab(tab) {
+    document.getElementById('login-form').style.display    = tab === 'login'    ? '' : 'none';
+    document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    clearAlert('auth-alert');
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  async function doLogin() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!username || !password) { showAlert('auth-alert', 'Please fill in all fields.'); return; }
+
+    const { ok, data } = await api('POST', '/login', { username, password });
+    if (ok) {
+      currentUser = username;
+      document.getElementById('nav-user').textContent = `— ${username}`;
+      document.getElementById('logout-btn').style.display = 'block';
+      document.querySelectorAll('#nav-links button:not(#logout-btn)').forEach(b => {
+        if (b.id !== 'nav-auth') b.style.display = 'block';
+      });
+      document.getElementById('nav-auth').style.display = 'none';
+      showPage('dashboard-page');
+    } else {
+      showAlert('auth-alert', data.error || 'Login failed.');
+    }
+  }
+
+  async function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!username || !password) { showAlert('auth-alert', 'Please fill in all fields.'); return; }
+
+    const { ok, data } = await api('POST', '/register', { username, password });
+    if (ok) {
+      showAlert('auth-alert', 'Account created! You can now log in.', 'success');
+      switchTab('login');
+      document.getElementById('login-username').value = username;
+    } else {
+      showAlert('auth-alert', data.error || 'Registration failed.');
+    }
+  }
+
+  function logout() {
+    currentUser          = null;
+    currentHubCourseId   = null;
+    currentHubCourseName = null;
+    document.getElementById('nav-user').textContent = '';
+    document.getElementById('logout-btn').style.display = 'none';
+    document.getElementById('nav-auth').style.display = 'block';
+    ['nav-dashboard', 'nav-courses', 'nav-assignments', 'nav-exams', 'nav-plan', 'nav-hub']
+      .forEach(id => document.getElementById(id).style.display = 'none');
+    showPage('auth-page');
+  }
+
+  // ── Courses ───────────────────────────────────────────────────────────────
+
+  // State stored between calls when user decides to force-create
+  let _pendingDupCourse = null;
+
+  async function addCourse(forceCreate = false) {
+    const name        = document.getElementById('course-name').value.trim();
+    const institution = document.getElementById('course-institution').value.trim();
+    const courseCode  = document.getElementById('course-code').value.trim();
+    if (!name) { showAlert('course-alert', 'Enter a course name.'); return; }
+
+    hideDuplicateWarning();
+
+    const { ok, data } = await api('POST', '/courses', {
+      username: currentUser, course: name, institution,
+      course_code: courseCode, force_create: forceCreate
+    });
+
+    if (ok) {
+      const jc = data.join_code ? ` Join code: ${data.join_code}` : '';
+      showAlert('course-alert',
+        `Course created!${jc} Share the code with classmates.`, 'success');
+      document.getElementById('course-name').value        = '';
+      document.getElementById('course-institution').value = '';
+      document.getElementById('course-code').value        = '';
+      hideDuplicateWarning();
+      loadCourses();
+      return;
+    }
+
+    // 409 — duplicate found
+    if (data && data.existing) {
+      _pendingDupCourse = data.existing;
+      const ex = data.existing;
+      const mc = ex.member_count ? ` (${ex.member_count} member${ex.member_count !== 1 ? 's' : ''})` : '';
+      const code = ex.course_code ? ` · ${ex.course_code}` : '';
+      document.getElementById('course-duplicate-msg').innerHTML =
+        ` <strong>${esc(ex.course)}</strong>${esc(code)}${mc} already exists at
+          <strong>${esc(ex.institution)}</strong>.`;
+      document.getElementById('course-duplicate-warning').style.display = 'block';
+      // Hide the green join button for hard duplicates (non-similar)
+      document.getElementById('dup-join-btn').style.display = data.similar === false ? 'inline-flex' : 'inline-flex';
+      // For hard duplicate, hide "Create anyway" option
+      const forceBtn = document.getElementById('dup-join-btn').nextElementSibling;
+      forceBtn.style.display = data.similar ? 'inline-flex' : 'none';
+      clearAlert('course-alert');
+    } else {
+      showAlert('course-alert', data.error || 'Failed to create course.');
+    }
+  }
+
+  function hideDuplicateWarning() {
+    document.getElementById('course-duplicate-warning').style.display = 'none';
+    _pendingDupCourse = null;
+  }
+
+  async function joinDuplicateExisting() {
+    if (!_pendingDupCourse) return;
+    await joinExistingCourse(_pendingDupCourse.course_id);
+    hideDuplicateWarning();
+  }
+
+  function forceCreateCourse() {
+    hideDuplicateWarning();
+    addCourse(true);
+  }
+
+  async function loadCourses() {
+    const { ok, data } = await api('GET', `/courses/${currentUser}`);
+    const list = document.getElementById('courses-list');
+    if (!ok || !data.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">&#128214;</div>No courses yet. Create one above or join with a code!</div>';
+      return;
+    }
+    list.innerHTML = data.map(c => {
+      const meta = [c.institution, c.course_code].filter(Boolean).join(' · ');
+      const jcBadge = c.join_code
+        ? `<span class="join-code-badge" title="Share this code so classmates can join">&#128279; ${esc(c.join_code)}</span>`
+        : '';
+      const cid = c.course_id || '';
+      return `
+      <li class="item-card">
+        <div class="item-info">
+          <div class="item-title">&#128217; ${esc(c.course)}</div>
+          ${meta ? `<div class="item-meta">${esc(meta)}</div>` : ''}
+          ${jcBadge ? `<div style="margin-top:4px">${jcBadge}</div>` : ''}
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-hub" onclick="showHub('${cid}', '${esc(c.course)}')">&#128172; Hub</button>
+          <button class="btn btn-sm"
+                  style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:5px 10px"
+                  onclick="deleteCourse('${cid}', '${esc(c.course)}', '${c.role || 'member'}')">&#128465; Remove</button>
+        </div>
+      </li>`;
+    }).join('');
+  }
+
+  async function joinCourse() {
+    const raw = document.getElementById('join-code-input').value.trim().toUpperCase();
+    if (!raw) { showAlert('join-alert', 'Enter a join code.'); return; }
+
+    const { ok, data } = await api('POST', '/courses/join', { username: currentUser, join_code: raw });
+    if (ok) {
+      const name = data.course ? ` — ${data.course}` : '';
+      showAlert('join-alert', `${data.message || 'Joined!'}${name}`, 'success');
+      document.getElementById('join-code-input').value = '';
+      loadCourses();
+    } else {
+      showAlert('join-alert', data.error || 'Failed to join course.');
+    }
+  }
+  // ── Institution course search ──────────────────────────────────────────────
+  let _searchTimer = null;
+
+  function onSearchInput() {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(searchInstitutionCourses, 380);
+  }
+
+  async function searchInstitutionCourses() {
+    const inst = document.getElementById('search-institution').value.trim();
+    const q    = document.getElementById('search-query').value.trim();
+    const box  = document.getElementById('search-results');
+
+    if (!inst) {
+      box.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem">Enter your institution name to search courses.</p>';
+      return;
+    }
+
+    box.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem">Searching…</p>';
+
+    const qParam = q ? `?q=${encodeURIComponent(q)}` : '';
+    const { ok, data } = await api('GET',
+      `/institutions/${encodeURIComponent(inst)}/courses${qParam}`);
+
+    if (!ok || !data.length) {
+      box.innerHTML = q
+        ? `<p style="color:var(--text-muted);font-size:.88rem">No courses matching "<strong>${esc(q)}</strong>" at <strong>${esc(inst)}</strong>. You can create it below.</p>`
+        : `<p style="color:var(--text-muted);font-size:.88rem">No courses found at <strong>${esc(inst)}</strong> yet. Be the first to create one!</p>`;
+      return;
+    }
+
+    box.innerHTML = data.map(c => {
+      const meta  = [c.course_code, c.institution].filter(Boolean).join(' · ');
+      const mc    = c.member_count ?? 0;
+      const badge = mc > 0
+        ? `<span style="background:#e0f2fe;color:#0369a1;border-radius:999px;
+               padding:2px 10px;font-size:.8rem;font-weight:600">${mc} member${mc !== 1 ? 's' : ''}</span>`
+        : '';
+      return `
+      <div style="display:flex;align-items:center;justify-content:space-between;
+           padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;
+           margin-bottom:8px;background:#f9fafb;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:600;color:var(--blue-dark)">&#128217; ${esc(c.course)}</div>
+          ${meta ? `<div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">${esc(meta)}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${badge}
+          <button class="btn btn-success btn-sm"
+                  onclick="joinExistingCourse('${esc(c.course_id)}')">
+            &#128279; Join
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function joinExistingCourse(courseId) {
+    const { ok, data } = await api('POST', '/courses/join-existing',
+      { username: currentUser, course_id: courseId });
+
+    if (ok) {
+      showAlert('join-alert',
+        `${data.message || 'Joined!'} — ${data.course || ''}`, 'success');
+      // Clear search results
+      document.getElementById('search-results').innerHTML = '';
+      document.getElementById('search-institution').value = '';
+      document.getElementById('search-query').value = '';
+      loadCourses();
+    } else {
+      showAlert('join-alert', data.error || 'Failed to join course.');
+    }
+  }
+
+  async function deleteCourse(courseId, courseName, role) {
+    if (!courseId) { showAlert('course-alert', 'Cannot remove — course ID is missing.'); return; }
+
+    // Build a role-appropriate confirmation message
+    const isOwner = role === 'owner';
+    const msg = isOwner
+      ? `Delete "${courseName}"?
+
+As the owner, this will permanently remove the course and ALL its hub content (chat, materials, Q&A) if you are the only member.
+
+If other members are still enrolled you will see an error.`
+      : `Leave "${courseName}"?
+
+You will be removed from this course. The course and its content will remain for other members.`;
+
+    if (!confirm(msg)) return;
+    clearAlert('course-alert');
+
+    const { ok, data } = await api('DELETE', `/courses/${encodeURIComponent(courseId)}`, {
+      username: currentUser
+    });
+
+    if (ok) {
+      showAlert('course-alert', data.message || 'Course removed.', 'success');
+      loadCourses();
+    } else {
+      // 409 = owner blocked because other members exist — show the full message
+      showAlert('course-alert', data.error || 'Failed to remove course.');
+    }
+  }
+
+  async function populateCourseDropdown(selectId) {
+    const { ok, data } = await api('GET', `/courses/${currentUser}`);
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">— select a course —</option>';
+    if (ok) {
+      data.forEach(c => {
+        sel.innerHTML += `<option value="${esc(c.course)}">${esc(c.course)}</option>`;
+      });
+    }
+  }
+
+  // ── Assignments ───────────────────────────────────────────────────────────
+
+  async function addAssignment() {
+    const title    = document.getElementById('assign-title').value.trim();
+    const course   = document.getElementById('assign-course').value;
+    const deadline = document.getElementById('assign-deadline').value;
+    if (!title || !course || !deadline) { showAlert('assignment-alert', 'Fill in all fields.'); return; }
+
+    const { ok, data } = await api('POST', '/assignments', { username: currentUser, course, title, deadline });
+    if (ok) {
+      showAlert('assignment-alert', 'Assignment added!', 'success');
+      document.getElementById('assign-title').value    = '';
+      document.getElementById('assign-deadline').value = '';
+      loadAssignments();
+    } else {
+      showAlert('assignment-alert', data.error || 'Failed to add assignment.');
+    }
+  }
+
+  async function loadAssignments() {
+    const { ok, data } = await api('GET', `/assignments/${currentUser}`);
+    const list = document.getElementById('assignments-list');
+    if (!ok || !data.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">&#10003;</div>No assignments yet.</div>';
+      _assignmentsCache = [];
+      return;
+    }
+    _assignmentsCache = data;
+    renderAssignmentList(data);
+  }
+
+  function renderAssignmentList(data) {
+    const list = document.getElementById('assignments-list');
+    list.innerHTML = data.map(a => `
+      <li class="item-card ${a.completed ? 'completed' : ''}" id="acard-${a._id}">
+        <div class="item-info">
+          <div class="item-title">${esc(a.title)}</div>
+          <div class="item-meta">&#128217; ${esc(a.course)} &nbsp;&middot;&nbsp; &#128197; Due: ${esc(a.deadline)}</div>
+        </div>
+        <div class="item-actions">
+          ${!a.completed
+            ? `<button class="btn btn-complete" onclick="completeAssignment('${a._id}')">&#10003; Done</button>`
+            : '<span style="color:var(--green);font-size:.82rem;font-weight:600">&#10003; Completed</span>'}
+          <button class="btn btn-edit" onclick="startEdit('${a._id}', '${esc(a.title)}', '${esc(a.course)}', '${esc(a.deadline)}')">&#9998; Edit</button>
+          <button class="btn btn-danger" onclick="deleteAssignment('${a._id}')">Delete</button>
+        </div>
+      </li>`).join('');
+  }
+
+  async function startEdit(id, title, course, deadline) {
+    const { ok, data: courses } = await api('GET', `/courses/${currentUser}`);
+    const courseOptions = ok
+      ? courses.map(c => `<option value="${esc(c.course)}" ${c.course === course ? 'selected' : ''}>${esc(c.course)}</option>`).join('')
+      : `<option value="${esc(course)}" selected>${esc(course)}</option>`;
+
+    const card = document.getElementById(`acard-${id}`);
+    if (!card) return;
+    card.classList.add('editing');
+    card.innerHTML = `
+      <div class="edit-form">
+        <div class="edit-row">
+          <div>
+            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:3px">Title</label>
+            <input type="text" id="edit-title-${id}" value="${esc(title)}" placeholder="Assignment title" />
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:3px">Course</label>
+            <select id="edit-course-${id}">${courseOptions}</select>
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:3px">Deadline</label>
+            <input type="date" id="edit-deadline-${id}" value="${esc(deadline)}" />
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="btn btn-save"   onclick="saveAssignment('${id}')">&#128190; Save</button>
+          <button class="btn btn-cancel" onclick="renderAssignmentList(_assignmentsCache)">&#x2715; Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  async function saveAssignment(id) {
+    const newTitle    = document.getElementById(`edit-title-${id}`).value.trim();
+    const newCourse   = document.getElementById(`edit-course-${id}`).value;
+    const newDeadline = document.getElementById(`edit-deadline-${id}`).value;
+    if (!newTitle || !newCourse || !newDeadline) {
+      showAlert('assignment-alert', 'All fields are required.'); return;
+    }
+    const { ok, data } = await api('PUT', '/assignments', {
+      id, new_title: newTitle, new_course: newCourse, new_deadline: newDeadline
+    });
+    if (ok) {
+      showAlert('assignment-alert', 'Assignment updated!', 'success');
+      loadAssignments();
+    } else {
+      showAlert('assignment-alert', data.error || 'Failed to update assignment.');
+    }
+  }
+
+  async function completeAssignment(id) {
+    const { ok, data } = await api('PUT', '/assignments/complete', { id });
+    if (ok) loadAssignments();
+    else showAlert('assignment-alert', data.error || 'Failed to complete assignment.');
+  }
+
+  async function deleteAssignment(id) {
+    if (!confirm('Delete this assignment?')) return;
+    const { ok, data } = await api('DELETE', '/assignments', { id });
+    if (ok) loadAssignments();
+    else showAlert('assignment-alert', data.error || 'Failed to delete assignment.');
+  }
+
+  // ── Exams ─────────────────────────────────────────────────────────────────
+
+  async function addExam() {
+    const course = document.getElementById('exam-course').value;
+    const date   = document.getElementById('exam-date').value;
+    if (!course || !date) { showAlert('exam-alert', 'Select a course and a date.'); return; }
+
+    const { ok, data } = await api('POST', '/exams', { username: currentUser, course, date });
+    if (ok) {
+      showAlert('exam-alert', 'Exam added!', 'success');
+      document.getElementById('exam-date').value = '';
+      loadExams();
+    } else {
+      showAlert('exam-alert', data.error || 'Failed to add exam.');
+    }
+  }
+
+  async function loadExams() {
+    const { ok, data } = await api('GET', `/exams/${currentUser}`);
+    const list = document.getElementById('exams-list');
+    if (!ok || !data.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">📅</div>No exams added yet.</div>';
+      return;
+    }
+    list.innerHTML = data.map(e => `
+      <li class="item-card">
+        <div class="item-info">
+          <div class="item-title">📕 ${esc(e.course)} Exam</div>
+          <div class="item-meta">📅 ${esc(e.date)}</div>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-danger" onclick="deleteExam('${esc(e.course)}', '${esc(e.date)}')">Delete</button>
+        </div>
+      </li>`).join('');
+  }
+
+  async function deleteExam(course, date) {
+    if (!confirm('Delete this exam?')) return;
+    const { ok, data } = await api('DELETE', '/exams', { username: currentUser, course, date });
+    if (ok) loadExams();
+    else showAlert('exam-alert', data.error || 'Failed to delete exam.');
+  }
+
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+
+  async function loadDashboard() {
+    const { ok, data } = await api('GET', `/dashboard/${currentUser}`);
+    const list = document.getElementById('dashboard-list');
+    if (!ok) { showAlert('dashboard-alert', data.error || 'Failed to load dashboard.'); return; }
+
+    const items = data.upcoming || [];
+    if (!items.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">🎉</div>Nothing due in the next 14 days!</div>';
+      return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    list.innerHTML = items.map(item => {
+      const daysLeft    = Math.ceil((new Date(item.date) - new Date(today)) / 86400000);
+      const urgency     = daysLeft === 0 ? 'chip-today' : daysLeft <= 3 ? 'chip-soon' : 'chip-ok';
+      const urgencyLabel = daysLeft === 0 ? 'Today!' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft}d left`;
+      const typeChip    = item.type === 'exam' ? 'chip-exam' : 'chip-assignment';
+      return `
+        <li class="item-card">
+          <div class="item-info">
+            <div class="item-title">
+              <span class="chip ${typeChip}">${esc(item.type)}</span>
+              &nbsp;${esc(item.title)}
+            </div>
+            <div class="item-meta">📗 ${esc(item.course)} &nbsp;&middot;&nbsp; 📅 ${esc(item.date)}</div>
+          </div>
+          <div>
+            <span class="chip ${urgency}">${urgencyLabel}</span>
+          </div>
+        </li>`;
+    }).join('');
+  }
+
+  // ── Study Plan ────────────────────────────────────────────────────────────
+
+  async function loadStudyPlan() {
+    const { ok, data } = await api('GET', `/study-plan/${currentUser}`);
+    const container = document.getElementById('plan-content');
+    if (!ok) { showAlert('plan-alert', data.error || 'Failed to load study plan.'); return; }
+
+    const plan = data.study_plan || [];
+    if (!plan.length) {
+      container.innerHTML = `<div class="empty"><div class="empty-icon">📚</div>No upcoming deadlines to plan for — you're all clear!</div>`;
+      return;
+    }
+    const groups = {};
+    plan.forEach(block => {
+      if (!groups[block.study_date]) groups[block.study_date] = [];
+      groups[block.study_date].push(block);
+    });
+    container.innerHTML = Object.keys(groups).map(date => {
+      const dayLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', month: 'short', day: 'numeric'
+      });
+      const blocks = groups[date].map(b => `
+        <div class="plan-block ${b.type === 'exam' ? 'exam-block' : ''}">
+          📖 ${esc(b.activity)}
+          <span style="float:right;color:var(--text-muted);font-size:.78rem">Due: ${esc(b.due)}</span>
+        </div>`).join('');
+      return `<div class="plan-day"><div class="day-header">${dayLabel}</div>${blocks}</div>`;
+    }).join('');
+  }
+
+  // ── Hub ───────────────────────────────────────────────────────────────────
+
+  function showHub(courseId, courseName) {
+    currentHubCourseId   = courseId;
+    currentHubCourseName = courseName;
+    document.getElementById('hub-course-title').textContent = courseName;
+    switchHubTab('chat');
+    showPage('hub-page');
+  }
+
+  function switchHubTab(tab) {
+    currentHubTab = tab;
+    ['chat', 'materials', 'qa', 'activity'].forEach(t => {
+      const btn = document.getElementById(`htab-${t}`);
+      const pnl = document.getElementById(`hub-panel-${t}`);
+      if (btn) btn.classList.toggle('active', t === tab);
+      if (pnl) pnl.classList.toggle('active', t === tab);
+    });
+    if (tab === 'chat')      loadHubMessages();
+    if (tab === 'materials') loadHubMaterials();
+    if (tab === 'qa')        loadHubQuestions();
+    if (tab === 'activity')  loadHubActivity();
+  }
+
+  // ── Chat ──────────────────────────────────────────────────────────────────
+
+  async function loadHubMessages() {
+    if (!currentHubCourseId) return;
+    const box = document.getElementById('chat-box');
+    try {
+      const { ok, data } = await api('GET', `/hub/${encodeURIComponent(currentHubCourseId)}/messages?username=${encodeURIComponent(currentUser)}`);
+      if (!ok) { box.innerHTML = '<div class="empty">Could not load messages.</div>'; return; }
+      if (!data.length) {
+        box.innerHTML = '<div class="empty"><div class="empty-icon">&#128172;</div>No messages yet. Be the first!</div>';
+        return;
+      }
+      box.innerHTML = data.map(m => {
+        const isOwn = m.username === currentUser;
+        const time  = new Date(m.created_at + 'Z').toLocaleString('en-GB', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        return `
+          <div class="chat-msg ${isOwn ? 'own-msg' : ''}">
+            <div class="msg-meta">${isOwn ? 'You' : esc(m.username)} &middot; ${time}</div>
+            <div class="msg-text">${esc(m.text)}</div>
+          </div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    } catch (err) {
+      box.innerHTML = '<div class="empty">Error loading messages.</div>';
+    }
+  }
+
+  async function sendHubMessage() {
+    const input = document.getElementById('chat-input');
+    const text  = input.value.trim();
+    if (!text || !currentHubCourseId) return;
+    clearAlert('hub-alert');
+
+    const { ok, data } = await api('POST', `/hub/${encodeURIComponent(currentHubCourseId)}/messages`, {
+      username: currentUser, text
+    });
+    if (ok) {
+      input.value = '';
+      loadHubMessages();
+    } else {
+      showAlert('hub-alert', data.error || 'Failed to send message.');
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement.id === 'chat-input') sendHubMessage();
+  });
+
+  // ── Materials ─────────────────────────────────────────────────────────────
+
+  async function loadHubMaterials() {
+    if (!currentHubCourseId) return;
+    const list = document.getElementById('materials-list');
+    try {
+      const { ok, data } = await api('GET', `/hub/${encodeURIComponent(currentHubCourseId)}/materials?username=${encodeURIComponent(currentUser)}`);
+      if (!ok) { list.innerHTML = '<div class="empty">Could not load materials.</div>'; return; }
+      if (!data.length) {
+        list.innerHTML = '<div class="empty"><div class="empty-icon">&#128206;</div>No materials yet. Share the first!</div>';
+        return;
+      }
+      list.innerHTML = data.map(m => {
+        let accessBtn = '';
+        if (m.file_id) {
+          const fileUrl = `${API}/hub/materials/file/${m.file_id}`;
+          const icon = m.content_type && m.content_type.startsWith('image/') ? '&#128444;'
+                     : m.filename && /\.pdf$/i.test(m.filename)              ? '&#128196;'
+                     : m.filename && /\.(ppt|pptx)$/i.test(m.filename)       ? '&#128202;'
+                     : m.filename && /\.(doc|docx)$/i.test(m.filename)        ? '&#128221;'
+                     : '&#128196;';
+          accessBtn = `<a href="${fileUrl}" target="_blank" rel="noopener"
+            style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:3px 10px;
+                   border-radius:99px;font-size:.8rem;font-weight:600;text-decoration:none">
+            ${icon} Open File</a>`;
+          if (m.filename) {
+            accessBtn += ` <span style="font-size:.78rem;color:var(--text-muted)">${esc(m.filename)}</span>`;
+          }
+        } else if (m.link) {
+          accessBtn = `<a href="${esc(m.link)}" target="_blank" rel="noopener"
+            style="color:var(--blue);font-size:.88rem">&#127758; Open Link</a>`;
+        }
+        return `
+          <div class="material-card">
+            <div class="mat-title">${esc(m.title)}</div>
+            ${m.description ? `<div class="mat-desc">${esc(m.description)}</div>` : ''}
+            <div class="mat-footer">
+              ${accessBtn}
+              <span style="font-size:.8rem;color:var(--text-muted)">by ${esc(m.username)}</span>
+              <button class="upvote-btn" onclick="upvoteMaterial('${m._id}', this)">
+                &#9650; Upvote <span class="badge">${m.upvotes}</span>
+              </button>
+              <button class="report-btn" onclick="reportItem('material', '${m._id}')">&#9873; Report</button>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = '<div class="empty">Error loading materials.</div>';
+    }
+  }
+
+  async function addHubMaterial() {
+    const title = document.getElementById('mat-title').value.trim();
+    const link  = document.getElementById('mat-link').value.trim();
+    const desc  = document.getElementById('mat-desc').value.trim();
+    if (!title || !link) { showAlert('hub-alert', 'Title and link are required.'); return; }
+
+    const { ok, data } = await api('POST', `/hub/${encodeURIComponent(currentHubCourseId)}/materials`, {
+      username: currentUser, title, link, description: desc
+    });
+    if (ok) {
+      showAlert('hub-alert', 'Material shared!', 'success');
+      document.getElementById('mat-title').value = '';
+      document.getElementById('mat-link').value  = '';
+      document.getElementById('mat-desc').value  = '';
+      loadHubMaterials();
+    } else {
+      showAlert('hub-alert', data.error || 'Failed to share material.');
+    }
+  }
+
+  async function uploadHubFile() {
+    const title  = document.getElementById('upl-title').value.trim();
+    const desc   = document.getElementById('upl-desc').value.trim();
+    const fileEl = document.getElementById('upl-file');
+    const status = document.getElementById('upl-status');
+
+    if (!title)               { showAlert('hub-alert', 'Title is required for file upload.'); return; }
+    if (!fileEl.files.length) { showAlert('hub-alert', 'Please select a file to upload.');    return; }
+
+    const formData = new FormData();
+    formData.append('username',    currentUser);
+    formData.append('title',       title);
+    formData.append('description', desc);
+    formData.append('file',        fileEl.files[0]);
+
+    status.textContent = 'Uploading…';
+    clearAlert('hub-alert');
+
+    try {
+      const res  = await fetch(`${API}/hub/${encodeURIComponent(currentHubCourseId)}/materials/upload`, {
+        method: 'POST',
+        body:   formData
+        // Do NOT set Content-Type — browser sets multipart boundary automatically
+      });
+      const data = await res.json();
+      status.textContent = '';
+      if (res.ok) {
+        showAlert('hub-alert', 'File uploaded successfully!', 'success');
+        document.getElementById('upl-title').value = '';
+        document.getElementById('upl-desc').value  = '';
+        fileEl.value = '';
+        loadHubMaterials();
+      } else {
+        showAlert('hub-alert', data.error || 'Upload failed.');
+      }
+    } catch (err) {
+      status.textContent = '';
+      showAlert('hub-alert', 'Network error during upload.');
+    }
+  }
+
+  async function upvoteMaterial(id, btn) {
+    try {
+      const { ok, data } = await api('PUT', `/hub/materials/${id}/upvote`);
+      if (ok) {
+        const badge = btn.querySelector('.badge');
+        if (badge) badge.textContent = data.upvotes;
+      }
+    } catch (err) { /* silent */ }
+  }
+
+  // ── Q&A ───────────────────────────────────────────────────────────────────
+
+  async function loadHubQuestions() {
+    if (!currentHubCourseId) return;
+    const list = document.getElementById('qa-list');
+    try {
+      const { ok, data } = await api('GET', `/hub/${encodeURIComponent(currentHubCourseId)}/questions?username=${encodeURIComponent(currentUser)}`);
+      if (!ok) { list.innerHTML = '<div class="empty">Could not load questions.</div>'; return; }
+      if (!data.length) {
+        list.innerHTML = '<div class="empty"><div class="empty-icon">&#10067;</div>No questions yet.</div>';
+        return;
+      }
+      list.innerHTML = data.map(q => {
+        const time = new Date(q.created_at + 'Z').toLocaleString('en-GB', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        const ac = q.answer_count || 0;
+        return `
+          <div class="question-card" id="qcard-${q._id}">
+            <div class="q-text">${esc(q.question)}</div>
+            <div class="q-meta">
+              <span>by ${esc(q.username)}</span>
+              <span>${time}</span>
+              <span class="badge">${ac} answer${ac === 1 ? '' : 's'}</span>
+              <button class="report-btn" onclick="reportItem('question', '${q._id}')">&#9873; Report</button>
+            </div>
+            <div class="answers-container" id="answers-${q._id}" style="margin-top:8px"></div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-sm"
+                      style="background:var(--blue-light);color:var(--blue-dark);font-size:.8rem"
+                      onclick="toggleAnswers('${q._id}')">Show Answers</button>
+              <button class="btn btn-sm"
+                      style="background:var(--grey-bg);border:1px solid var(--grey-border);font-size:.8rem"
+                      onclick="toggleAnswerForm('${q._id}')">Answer</button>
+            </div>
+            <div class="hub-add-form" id="aform-${q._id}" style="display:none;margin-top:10px;padding:12px">
+              <input type="text" id="ainput-${q._id}"
+                     placeholder="Write your answer…" maxlength="3000"
+                     style="width:100%;margin-bottom:8px;padding:8px 10px;border:1px solid var(--grey-border);border-radius:var(--radius)" />
+              <button class="btn btn-primary btn-sm" onclick="postAnswer('${q._id}')">Post Answer</button>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = '<div class="empty">Error loading questions.</div>';
+    }
+  }
+
+  async function postHubQuestion() {
+    const question  = document.getElementById('qa-question').value.trim();
+    const anonymous = document.getElementById('qa-anonymous').checked;
+    if (!question) { showAlert('hub-alert', 'Enter your question.'); return; }
+
+    const { ok, data } = await api('POST', `/hub/${encodeURIComponent(currentHubCourseId)}/questions`, {
+      username: currentUser, question, anonymous
+    });
+    if (ok) {
+      showAlert('hub-alert', 'Question posted!', 'success');
+      document.getElementById('qa-question').value    = '';
+      document.getElementById('qa-anonymous').checked = false;
+      loadHubQuestions();
+    } else {
+      showAlert('hub-alert', data.error || 'Failed to post question.');
+    }
+  }
+
+  async function toggleAnswers(qid) {
+    const container = document.getElementById(`answers-${qid}`);
+    if (!container) return;
+    if (container.dataset.loaded) {
+      container.style.display = container.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+    await loadAnswers(qid);
+    container.style.display = 'block';
+  }
+
+  function toggleAnswerForm(qid) {
+    const form = document.getElementById(`aform-${qid}`);
+    if (!form) return;
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    if (form.style.display === 'block') {
+      const input = document.getElementById(`ainput-${qid}`);
+      if (input) input.focus();
+    }
+  }
+
+  async function loadAnswers(qid) {
+    const container = document.getElementById(`answers-${qid}`);
+    if (!container) return;
+    try {
+      const { ok, data } = await api('GET', `/hub/questions/${qid}/answers`);
+      if (!ok) {
+        container.innerHTML = '<div style="font-size:.85rem;color:var(--red)">Could not load answers.</div>';
+        return;
+      }
+      container.dataset.loaded = '1';
+      if (!data.length) {
+        container.innerHTML = '<div style="font-size:.85rem;color:var(--text-muted);padding:6px 0">No answers yet.</div>';
+        return;
+      }
+      container.innerHTML = data.map(a => {
+        const time = new Date(a.created_at + 'Z').toLocaleString('en-GB', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        return `
+          <div class="answer-card">
+            <div class="a-text">${esc(a.answer)}</div>
+            <div class="a-meta">
+              <span>by ${esc(a.username)}</span>
+              <span>${time}</span>
+              <button class="helpful-btn" onclick="markHelpful('${a._id}', this)">
+                &#128077; Helpful <span class="badge">${a.helpful_count}</span>
+              </button>
+              <button class="report-btn" onclick="reportItem('answer', '${a._id}')">&#9873; Report</button>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      container.innerHTML = '<div style="font-size:.85rem;color:var(--red)">Error loading answers.</div>';
+    }
+  }
+
+  async function postAnswer(qid) {
+    const input  = document.getElementById(`ainput-${qid}`);
+    if (!input) return;
+    const answer = input.value.trim();
+    if (!answer) return;
+
+    const { ok, data } = await api('POST', `/hub/questions/${qid}/answers`, {
+      username: currentUser, answer
+    });
+    if (ok) {
+      input.value = '';
+      document.getElementById(`aform-${qid}`).style.display = 'none';
+      const container = document.getElementById(`answers-${qid}`);
+      if (container) {
+        container.dataset.loaded = '';
+        await loadAnswers(qid);
+        container.style.display = 'block';
+      }
+      showAlert('hub-alert', 'Answer posted!', 'success');
+    } else {
+      showAlert('hub-alert', data.error || 'Failed to post answer.');
+    }
+  }
+
+  async function markHelpful(aid, btn) {
+    try {
+      const { ok, data } = await api('PUT', `/hub/answers/${aid}/helpful`);
+      if (ok) {
+        const badge = btn.querySelector('.badge');
+        if (badge) badge.textContent = data.helpful_count;
+      }
+    } catch (err) { /* silent */ }
+  }
+
+  // ── Reports ───────────────────────────────────────────────────────────────
+
+  async function reportItem(type, itemId) {
+    const reason = window.prompt('Reason for reporting (optional):') || '';
+    const { ok, data } = await api('POST', '/hub/report', {
+      type, item_id: itemId, reported_by: currentUser, reason, course_id: currentHubCourseId
+    });
+    if (ok) alert('Report submitted. Thank you.');
+    else alert(data.error || 'Failed to submit report.');
+  }
+
+  // -- Activity Feed ─────────────────────────────────────────────────────────
+
+  async function loadHubActivity() {
+    if (!currentHubCourseId) return;
+    const list = document.getElementById('activity-list');
+    try {
+      const { ok, data } = await api('GET', `/hub/${encodeURIComponent(currentHubCourseId)}/activity?username=${encodeURIComponent(currentUser)}`);
+      if (!ok) { list.innerHTML = '<div class="empty">Could not load activity.</div>'; return; }
+      if (!data.length) {
+        list.innerHTML = '<div class="empty"><div class="empty-icon">&#9889;</div>No activity yet in this course hub.</div>';
+        return;
+      }
+      list.innerHTML = data.map(item => {
+        const time = new Date(item.created_at + 'Z').toLocaleString('en-GB', {
+          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        let icon = '&#128172;', typeClass = 'activity-chat', label = 'Chat';
+        if (item.type === 'question') { icon = '&#10067;';  typeClass = 'activity-question'; label = 'Q&amp;A'; }
+        else if (item.type === 'file') { icon = '&#128196;'; typeClass = 'activity-file';     label = 'File'; }
+        else if (item.type === 'url')  { icon = '&#127758;'; typeClass = 'activity-url';      label = 'Link'; }
+
+        let body = '';
+        if (item.type === 'chat') {
+          body = `<div style="font-size:.92rem;margin-top:4px;word-break:break-word">${esc(item.text || '')}</div>`;
+        } else if (item.type === 'question') {
+          body = `<div style="font-size:.92rem;font-weight:600;margin-top:4px">${esc(item.question || '')}</div>`;
+        } else if (item.type === 'file' || item.type === 'url') {
+          const titleStr = esc(item.title || '');
+          let accessBtn = '';
+          if (item.type === 'file' && item.file_id) {
+            accessBtn = ` <a href="${API}/hub/materials/file/${esc(item.file_id)}" target="_blank"
+              rel="noopener" style="font-size:.8rem;color:#1d4ed8">Open File</a>`;
+          } else if (item.type === 'url' && item.link) {
+            accessBtn = ` <a href="${esc(item.link)}" target="_blank"
+              rel="noopener" style="font-size:.8rem;color:var(--blue)">Open Link</a>`;
+          }
+          body = `<div style="font-size:.92rem;font-weight:600;margin-top:4px">${titleStr}${accessBtn}</div>`;
+          if (item.description) {
+            body += `<div style="font-size:.83rem;color:var(--text-muted)">${esc(item.description)}</div>`;
+          }
+        }
+
+        return `
+          <div class="activity-card ${typeClass}">
+            <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">
+              ${icon} ${label}
+            </div>
+            ${body}
+            <div class="activity-meta">
+              <span>by ${esc(item.username)}</span>
+              <span>${time}</span>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = '<div class="empty">Error loading activity.</div>';
+    }
+  }
+
+    // ── Init: hide protected nav items on load ────────────────────────────────
+  ['nav-dashboard', 'nav-courses', 'nav-assignments', 'nav-exams', 'nav-plan', 'nav-hub']
+    .forEach(id => document.getElementById(id).style.display = 'none');
+
+</script>
+</body>
+</html>
