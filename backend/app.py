@@ -260,6 +260,22 @@ def add_course():
         "join_code": join_code,
     }), 201
 
+@app.route("/courses", methods=["GET"])
+def search_courses_by_institution():
+    institution = request.args.get("institution", "").strip()
+
+    if not institution:
+        return jsonify({"error": "institution is required"}), 400
+
+    institution_norm = normalize_text(institution)
+
+    courses = list(db.courses.find(
+        {"institution_normalized": institution_norm},
+        {"_id": 0}
+    ))
+
+    return jsonify(courses), 200
+
 @app.route("/courses/<username>", methods=["GET"])
 def get_courses(username):
     """Return all courses the user is a member of, including their role.
