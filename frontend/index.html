@@ -731,17 +731,24 @@
 
     const { ok, data } = await api('POST', '/login', { username, password });
     if (ok) {
-      currentUser = username;
-      document.getElementById('nav-user').textContent = `— ${username}`;
-      document.getElementById('logout-btn').style.display = 'block';
-      document.querySelectorAll('#nav-links button:not(#logout-btn)').forEach(b => {
-        if (b.id !== 'nav-auth') b.style.display = 'block';
-      });
-      document.getElementById('nav-auth').style.display = 'none';
+      applySession(username);
       showPage('dashboard-page');
     } else {
       showAlert('auth-alert', data.error || 'Login failed.');
     }
+  }
+
+  // ── Session helpers ────────────────────────────────────
+
+  function applySession(username) {
+    currentUser = username;
+    localStorage.setItem('ssp_user', username);
+    document.getElementById('nav-user').textContent = `— ${username}`;
+    document.getElementById('logout-btn').style.display = 'block';
+    document.querySelectorAll('#nav-links button:not(#logout-btn)').forEach(b => {
+      if (b.id !== 'nav-auth') b.style.display = 'block';
+    });
+    document.getElementById('nav-auth').style.display = 'none';
   }
 
   async function doRegister() {
@@ -763,6 +770,7 @@
     currentUser          = null;
     currentHubCourseId   = null;
     currentHubCourseName = null;
+    localStorage.removeItem('ssp_user');
     document.getElementById('nav-user').textContent = '';
     document.getElementById('logout-btn').style.display = 'none';
     document.getElementById('nav-auth').style.display = 'block';
@@ -1809,9 +1817,22 @@ You will be removed from this course. The course and its content will remain for
     }
   }
 
-    // ── Init: hide protected nav items on load ────────────────────────────────
+    // ── Init ────────────────────────────
+
+  // Hide protected nav items before session check
   ['nav-dashboard', 'nav-courses', 'nav-assignments', 'nav-exams', 'nav-plan', 'nav-hub']
     .forEach(id => document.getElementById(id).style.display = 'none');
+
+  // Restore session from localStorage so a page refresh keeps the user logged in
+  (function restoreSession() {
+    const saved = localStorage.getItem('ssp_user');
+    if (saved) {
+      applySession(saved);
+      showPage('dashboard-page');
+    } else {
+      showPage('auth-page');
+    }
+  })();
 
 </script>
 </body>
