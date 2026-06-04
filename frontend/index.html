@@ -464,7 +464,7 @@
   </div>
 
   <!-- ── My courses ─────────────────────────────────────────────────────── -->
-  <div class="card" style="max-width:680px;margin:0 auto">
+  <div id="my-courses-section" class="card" style="max-width:680px;margin:0 auto;display:none">
     <h2>📚 My Courses</h2>
     <ul class="item-list" id="courses-list">
       <div class="empty"><div class="empty-icon">📖</div>No courses yet. Select your institution above to get started!</div>
@@ -704,30 +704,55 @@
 
   // ── Page / tab routing ────────────────────────────────────────────────────
 
-  function showPage(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
-    if (id !== 'auth-page' && currentUser) sessionStorage.setItem('ssp_page', id);
-
-    const navMap = {
-      'auth-page':        'nav-auth',
-      'dashboard-page':   'nav-dashboard',
-      'courses-page':     'nav-courses',
-      'assignments-page': 'nav-assignments',
-      'exams-page':       'nav-exams',
-      'plan-page':        'nav-plan',
-      'hub-page':         'nav-hub'
-    };
-    if (navMap[id]) document.getElementById(navMap[id]).classList.add('active');
-
-    if (!currentUser && id !== 'auth-page') { showPage('auth-page'); return; }
-    if (id === 'dashboard-page')   loadDashboard();
-    if (id === 'courses-page')     loadCourses();
-    if (id === 'assignments-page') { loadAssignments(); populateCourseDropdown('assign-course'); }
-    if (id === 'exams-page')       { loadExams(); populateCourseDropdown('exam-course'); }
-    if (id === 'plan-page')        loadStudyPlan();
+function showPage(id) {
+  if (!currentUser && id !== 'auth-page') {
+    id = 'auth-page';
   }
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  const page = document.getElementById(id);
+  if (!page) return;
+
+  page.classList.add('active');
+
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+
+  if (id !== 'auth-page' && currentUser) {
+    sessionStorage.setItem('ssp_page', id);
+  }
+
+  const navMap = {
+    'auth-page': 'nav-auth',
+    'dashboard-page': 'nav-dashboard',
+    'courses-page': 'nav-courses',
+    'assignments-page': 'nav-assignments',
+    'exams-page': 'nav-exams',
+    'plan-page': 'nav-plan',
+    'hub-page': 'nav-hub'
+  };
+
+  const navBtn = document.getElementById(navMap[id]);
+  if (navBtn) navBtn.classList.add('active');
+
+  const myCoursesSection = document.getElementById('my-courses-section');
+  if (myCoursesSection) {
+    myCoursesSection.style.display =
+      (id === 'courses-page' && currentUser) ? 'block' : 'none';
+  }
+
+  if (id === 'dashboard-page') loadDashboard();
+  if (id === 'courses-page') loadCourses();
+  if (id === 'assignments-page') {
+    loadAssignments();
+    populateCourseDropdown('assign-course');
+  }
+  if (id === 'exams-page') {
+    loadExams();
+    populateCourseDropdown('exam-course');
+  }
+  if (id === 'plan-page') loadStudyPlan();
+}
 
   function switchTab(tab) {
     document.getElementById('login-form').style.display    = tab === 'login'    ? '' : 'none';
