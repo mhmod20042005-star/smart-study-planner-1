@@ -72,6 +72,10 @@
     /* ── Layout ───────────────────────────────────── */
     .page { display: none; max-width: 900px; margin: 32px auto; padding: 0 16px 40px; }
     .page.active { display: block; }
+    /* authenticated gate: hide all non-auth pages until user is logged in */
+    body:not(.authenticated) .page:not(#auth-page) { display: none !important; }
+    body.authenticated #auth-page { display: none !important; }
+    body.authenticated #auth-page.active { display: none !important; }
 
     /* ── Cards ────────────────────────────────────── */
     .card {
@@ -758,6 +762,7 @@
     const nav = document.getElementById('nav-links');
     nav.classList.remove('nav-logged-out');
     nav.classList.add('nav-logged-in');
+    document.body.classList.add('authenticated');
   }
 
   async function doRegister() {
@@ -787,6 +792,7 @@
     const nav = document.getElementById('nav-links');
     nav.classList.remove('nav-logged-in');
     nav.classList.add('nav-logged-out');
+    document.body.classList.remove('authenticated');
     showPage('auth-page');
   }
 
