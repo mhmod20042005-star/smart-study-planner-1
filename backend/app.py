@@ -791,6 +791,25 @@ def post_hub_message(course_id):
     return jsonify({"message": "Message posted"}), 201
  
  
+@app.route("/hub/messages/<message_id>", methods=["DELETE"])
+def delete_hub_message(message_id):
+    """Delete a chat message — only the original author may delete."""
+    data     = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username is required"}), 400
+    oid = parse_oid(message_id)
+    if not oid:
+        return jsonify({"error": "Invalid message id"}), 400
+    msg = db.hub_messages.find_one({"_id": oid}, {"username": 1})
+    if msg is None:
+        return jsonify({"error": "Message not found"}), 404
+    if msg.get("username") != username:
+        return jsonify({"error": "You can only delete your own messages"}), 403
+    db.hub_messages.delete_one({"_id": oid})
+    return jsonify({"message": "Message deleted"}), 200
+ 
+ 
 # == Materials ================================================================
  
 @app.route("/hub/<course_id>/materials/upload", methods=["POST"])
@@ -895,6 +914,29 @@ def post_hub_material(course_id):
     return jsonify({"message": "Material added"}), 201
  
  
+@app.route("/hub/materials/<material_id>", methods=["DELETE"])
+def delete_hub_material(material_id):
+    """Delete a material — only the uploader may delete."""
+    data     = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username is required"}), 400
+    oid = parse_oid(material_id)
+    if not oid:
+        return jsonify({"error": "Invalid material id"}), 400
+    mat = db.hub_materials.find_one({"_id": oid}, {"username": 1, "file_id": 1})
+    if mat is None:
+        return jsonify({"error": "Material not found"}), 404
+    if mat.get("username") != username:
+        return jsonify({"error": "You can only delete your own materials"}), 403
+    if mat.get("file_id"):
+        foid = parse_oid(mat["file_id"])
+        if foid and fs.exists(foid):
+            fs.delete(foid)
+    db.hub_materials.delete_one({"_id": oid})
+    return jsonify({"message": "Material deleted"}), 200
+
+
 @app.route("/hub/materials/<material_id>/upvote", methods=["PUT"])
 def upvote_material(material_id):
     """Toggle upvote for a shared material (one vote per user)."""
@@ -971,6 +1013,26 @@ def post_hub_question(course_id):
     return jsonify({"message": "Question posted"}), 201
  
  
+@app.route("/hub/questions/<question_id>", methods=["DELETE"])
+def delete_hub_question(question_id):
+    """Delete a question and all its answers — only the author may delete."""
+    data     = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username is required"}), 400
+    oid = parse_oid(question_id)
+    if not oid:
+        return jsonify({"error": "Invalid question id"}), 400
+    q = db.hub_questions.find_one({"_id": oid}, {"username": 1})
+    if q is None:
+        return jsonify({"error": "Question not found"}), 404
+    if q.get("username") != username:
+        return jsonify({"error": "You can only delete your own questions"}), 403
+    db.hub_answers.delete_many({"question_id": question_id})
+    db.hub_questions.delete_one({"_id": oid})
+    return jsonify({"message": "Question deleted"}), 200
+
+
 @app.route("/hub/questions/<question_id>/answers", methods=["GET"])
 def get_hub_answers(question_id):
     """Return all answers for a question, most helpful first."""
@@ -1012,6 +1074,25 @@ def post_hub_answer(question_id):
     return jsonify({"message": "Answer posted"}), 201
  
  
+@app.route("/hub/answers/<answer_id>", methods=["DELETE"])
+def delete_hub_answer(answer_id):
+    """Delete an answer — only the author may delete."""
+    data     = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username is required"}), 400
+    oid = parse_oid(answer_id)
+    if not oid:
+        return jsonify({"error": "Invalid answer id"}), 400
+    ans = db.hub_answers.find_one({"_id": oid}, {"username": 1})
+    if ans is None:
+        return jsonify({"error": "Answer not found"}), 404
+    if ans.get("username") != username:
+        return jsonify({"error": "You can only delete your own answers"}), 403
+    db.hub_answers.delete_one({"_id": oid})
+    return jsonify({"message": "Answer deleted"}), 200
+
+
 @app.route("/hub/answers/<answer_id>/helpful", methods=["PUT"])
 def mark_answer_helpful(answer_id):
     """Toggle helpful vote for an answer (one vote per user)."""
