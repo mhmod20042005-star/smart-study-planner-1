@@ -61,7 +61,13 @@
     }
     nav .nav-links button:hover,
     nav .nav-links button.active { background: rgba(255,255,255,.15); color: #fff; }
-    #logout-btn { display: none; background: rgba(255,255,255,.12) !important; color: #fff !important; }
+    .nav-protected { display: none !important; }
+    .nav-auth-only  { display: none !important; }
+    .nav-logged-in .nav-protected { display: block !important; }
+    .nav-logged-in .nav-auth-only { display: none  !important; }
+    .nav-logged-out .nav-protected { display: none  !important; }
+    .nav-logged-out .nav-auth-only { display: block !important; }
+    #logout-btn { background: rgba(255,255,255,.12) !important; color: #fff !important; }
 
     /* ── Layout ───────────────────────────────────── */
     .page { display: none; max-width: 900px; margin: 32px auto; padding: 0 16px 40px; }
@@ -329,16 +335,16 @@
 
 <!-- NAVBAR -->
 <nav>
-  <div class="brand">📚 Smart Study Planner <span id="nav-user"></span></div>
+  <div class="brand">📚 Smart Study Planner <span id="nav-user" class="nav-protected"></span></div>
   <div class="nav-links" id="nav-links">
-    <button onclick="showPage('auth-page')"        id="nav-auth"        class="active">Login / Register</button>
-    <button onclick="showPage('dashboard-page')"   id="nav-dashboard"  >Dashboard</button>
-    <button onclick="showPage('courses-page')"     id="nav-courses"    >Courses</button>
-    <button onclick="showPage('assignments-page')" id="nav-assignments" >Assignments</button>
-    <button onclick="showPage('exams-page')"       id="nav-exams"      >Exams</button>
-    <button onclick="showPage('plan-page')"        id="nav-plan"       >Study Plan</button>
-    <button onclick="showPage('hub-page')"         id="nav-hub"        >💬 Hub</button>
-    <button onclick="logout()"                     id="logout-btn"     >Logout</button>
+    <button onclick="showPage('auth-page')"        id="nav-auth"        class="active nav-auth-only">Login / Register</button>
+    <button onclick="showPage('dashboard-page')"   id="nav-dashboard"   class="nav-protected">Dashboard</button>
+    <button onclick="showPage('courses-page')"     id="nav-courses"     class="nav-protected">Courses</button>
+    <button onclick="showPage('assignments-page')" id="nav-assignments" class="nav-protected">Assignments</button>
+    <button onclick="showPage('exams-page')"       id="nav-exams"       class="nav-protected">Exams</button>
+    <button onclick="showPage('plan-page')"        id="nav-plan"        class="nav-protected">Study Plan</button>
+    <button onclick="showPage('hub-page')"         id="nav-hub"         class="nav-protected">💬 Hub</button>
+    <button onclick="logout()"                     id="logout-btn"      class="nav-protected">Logout</button>
   </div>
 </nav>
 
@@ -749,11 +755,9 @@
     currentUser = username;
     sessionStorage.setItem('ssp_user', username);
     document.getElementById('nav-user').textContent = `— ${username}`;
-    document.getElementById('logout-btn').style.display = 'block';
-    document.querySelectorAll('#nav-links button:not(#logout-btn)').forEach(b => {
-      if (b.id !== 'nav-auth') b.style.display = 'block';
-    });
-    document.getElementById('nav-auth').style.display = 'none';
+    const nav = document.getElementById('nav-links');
+    nav.classList.remove('nav-logged-out');
+    nav.classList.add('nav-logged-in');
   }
 
   async function doRegister() {
@@ -780,10 +784,9 @@
     sessionStorage.removeItem('ssp_hub_id');
     sessionStorage.removeItem('ssp_hub_name');
     document.getElementById('nav-user').textContent = '';
-    document.getElementById('logout-btn').style.display = 'none';
-    document.getElementById('nav-auth').style.display = 'block';
-    ['nav-dashboard', 'nav-courses', 'nav-assignments', 'nav-exams', 'nav-plan', 'nav-hub']
-      .forEach(id => document.getElementById(id).style.display = 'none');
+    const nav = document.getElementById('nav-links');
+    nav.classList.remove('nav-logged-in');
+    nav.classList.add('nav-logged-out');
     showPage('auth-page');
   }
 
