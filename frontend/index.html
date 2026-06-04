@@ -241,6 +241,8 @@
     .material-card .mat-title { font-weight: 600; font-size: .95rem; }
     .material-card .mat-desc  { font-size: .85rem; color: var(--text-muted); margin: 4px 0; }
     .material-card .mat-footer { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .upvote-btn.voted { background: #bbf7d0; color: #065f46; border-color: #34d399; font-weight: 700; }
+    .helpful-btn.voted { background: #bfdbfe; color: #1e40af; border-color: #60a5fa; font-weight: 700; }
     .upvote-btn {
       background: #f0fdf4; border: 1px solid #86efac; color: #166534;
       padding: 3px 10px; border-radius: 99px; cursor: pointer; font-size: .8rem; font-weight: 600;
@@ -411,6 +413,8 @@
         <select id="wizard-institution" onchange="onWizardInstitution()" style="font-size:1rem;padding:10px 14px">
           <option value="">— select your institution —</option>
           <option value="Ramat Gan Academic College">המכללה האקדמית רמת גן — Ramat Gan Academic College</option>
+          <option value="Ruppin Academic Center"> המרכז האקדמי רופין — Ruppin Academic Center</option>
+            <option value="Peres Academic Center">המרכז האקדמי פרס — Peres Academic Center</option>
         </select>
       </div>
 
@@ -432,6 +436,8 @@
         <select id="wizard-degree" onchange="onWizardDegree()" style="font-size:1rem;padding:10px 14px">
           <option value="">— select your degree —</option>
           <option value="cs">Computer Science — מדעי המחשב</option>
+          <option value="nursing">Nursing — סיעוד</option>
+          <option value="business">Business Administration — מנהל עסקים</option>
         </select>
       </div>
     </div>
@@ -694,7 +700,7 @@
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
-    if (id !== 'auth-page' && currentUser) localStorage.setItem('ssp_page', id);
+    if (id !== 'auth-page' && currentUser) sessionStorage.setItem('ssp_page', id);
 
     const navMap = {
       'auth-page':        'nav-auth',
@@ -743,7 +749,7 @@
 
   function applySession(username) {
     currentUser = username;
-    localStorage.setItem('ssp_user', username);
+    sessionStorage.setItem('ssp_user', username);
     document.getElementById('nav-user').textContent = `— ${username}`;
     document.getElementById('logout-btn').style.display = 'block';
     document.querySelectorAll('#nav-links button:not(#logout-btn)').forEach(b => {
@@ -771,10 +777,10 @@
     currentUser          = null;
     currentHubCourseId   = null;
     currentHubCourseName = null;
-    localStorage.removeItem('ssp_user');
-    localStorage.removeItem('ssp_page');
-    localStorage.removeItem('ssp_hub_id');
-    localStorage.removeItem('ssp_hub_name');
+    sessionStorage.removeItem('ssp_user');
+    sessionStorage.removeItem('ssp_page');
+    sessionStorage.removeItem('ssp_hub_id');
+    sessionStorage.removeItem('ssp_hub_name');
     document.getElementById('nav-user').textContent = '';
     document.getElementById('logout-btn').style.display = 'none';
     document.getElementById('nav-auth').style.display = 'block';
@@ -785,49 +791,117 @@
 
   // ── Courses — Wizard ──────────────────────────────────────────────────────
 
-  // Curriculum map: institution → degree → courses
-  const CURRICULUM = {
-    'Ramat Gan Academic College': {
-      cs: [
-        { name: 'מבוא למדעי המחשב',             code: 'CS101',  credits: 5   },
-        { name: 'מבני נתונים',                   code: 'CS102',  credits: 4.5 },
-        { name: 'אלגוריתמים',                    code: 'CS201',  credits: 4.5 },
-        { name: 'אלגברה לינארית 1',              code: 'MATH101', credits: 4  },
-        { name: 'אלגברה לינארית 2',              code: 'MATH102', credits: 4  },
-        { name: 'חדו"א 1',                       code: 'MATH201', credits: 5  },
-        { name: 'חדו"א 2',                       code: 'MATH202', credits: 5  },
-        { name: 'מבוא לתקשורת נתונים',           code: 'CS103',  credits: 4  },
-        { name: 'מבוא לסייבר',                   code: 'CS104',  credits: 4  },
-        { name: 'מתמטיקה בדידה',                 code: 'MATH301', credits: 3.5},
-        { name: 'תכנות מונחה עצמים',             code: 'CS105',  credits: 5  },
-        { name: 'שיטות פיתוח תוכנה',             code: 'CS106',  credits: 3  },
-        { name: 'עקרונות מערכות הפעלה',          code: 'CS107',  credits: 3  },
-        { name: 'ארגון המחשב ושפת סף',            code: 'CS108',  credits: 3  },
-        { name: 'ניהול פרויקטי תוכנה',           code: 'CS109',  credits: 3  },
-        { name: 'לוגיקה ותורת הקבוצות',          code: 'MATH401', credits: 3 },
-        { name: 'תורת הגרפים',                   code: 'MATH402', credits: 2.5},
-        { name: 'תורת הקומפילציה',               code: 'CS202',  credits: 3  },
-        { name: 'אוטומטים ושפות פורמליות',       code: 'CS203',  credits: 3.5},
-        { name: 'חישוביות וסיבוכיות',            code: 'CS204',  credits: 3.5},
-        { name: 'יסודות תורת ההצפנה',            code: 'CS205',  credits: 3  },
-        { name: 'מבוא לבינה מלאכותית',           code: 'CS301',  credits: 4  },
-        { name: 'פיתוח תוכנה מבוסס בינה מלאכותית', code: 'CS302', credits: 3},
-        { name: 'מבוא ללמידת מכונה',             code: 'CS303',  credits: 4  },
-        { name: 'למידה עמוקה',                   code: 'CS304',  credits: 3  },
-        { name: 'מבוא לאותות ומערכות',           code: 'EE101',  credits: 3  },
-        { name: 'מבוא לביולוגיה חישובית',        code: 'BIO101', credits: 3  },
-        { name: 'מבוא להסתברות ולסטטיסטיקה',     code: 'STAT101', credits: 2.5},
-        { name: 'בסיסי נתונים',                  code: 'CS110',  credits: 3.5},
-        { name: 'אלגוריתמים מבוזרים',            code: 'CS206',  credits: 3  },
-        { name: 'ניהול ושיווק עסקים קטנים',      code: 'BUS101', credits: 2  },
-        { name: 'גיהול ושיווק עסקים קטנים',      code: 'BUS102', credits: 2  },
-        { name: 'עיצוב ממשק משתמש',              code: 'CS111',  credits: 2  },
-        { name: 'פרויקט יישומי: אלגוריתמים',     code: 'CS401',  credits: 4  },
-        { name: 'פרויקט יישומי: בינה מלאכותית',  code: 'CS402',  credits: 4  },
-        { name: 'תכנות מתקדם בשפת פייתון',       code: 'CS112',  credits: 3  },
-      ]
-    }
-  };
+ // Curriculum map: institution → degree → courses
+const CURRICULUM = {
+  'Ramat Gan Academic College': {
+    cs: [
+      { name: 'מבוא למדעי המחשב', code: 'CS101', credits: 5 },
+      { name: 'מבני נתונים', code: 'CS102', credits: 4.5 },
+      { name: 'אלגוריתמים', code: 'CS201', credits: 4.5 },
+      { name: 'אלגברה לינארית 1', code: 'MATH101', credits: 4 },
+      { name: 'אלגברה לינארית 2', code: 'MATH102', credits: 4 },
+      { name: 'חדו"א 1', code: 'MATH201', credits: 5 },
+      { name: 'חדו"א 2', code: 'MATH202', credits: 5 },
+      { name: 'מבוא לתקשורת נתונים', code: 'CS103', credits: 4 },
+      { name: 'מבוא לסייבר', code: 'CS104', credits: 4 },
+      { name: 'מתמטיקה בדידה', code: 'MATH301', credits: 3.5 },
+      { name: 'תכנות מונחה עצמים', code: 'CS105', credits: 5 },
+      { name: 'שיטות פיתוח תוכנה', code: 'CS106', credits: 3 },
+      { name: 'עקרונות מערכות הפעלה', code: 'CS107', credits: 3 },
+      { name: 'ארגון המחשב ושפת סף', code: 'CS108', credits: 3 },
+      { name: 'ניהול פרויקטי תוכנה', code: 'CS109', credits: 3 },
+      { name: 'לוגיקה ותורת הקבוצות', code: 'MATH401', credits: 3 },
+      { name: 'תורת הגרפים', code: 'MATH402', credits: 2.5 },
+      { name: 'תורת הקומפילציה', code: 'CS202', credits: 3 },
+      { name: 'אוטומטים ושפות פורמליות', code: 'CS203', credits: 3.5 },
+      { name: 'חישוביות וסיבוכיות', code: 'CS204', credits: 3.5 },
+      { name: 'יסודות תורת ההצפנה', code: 'CS205', credits: 3 },
+      { name: 'מבוא לבינה מלאכותית', code: 'CS301', credits: 4 },
+      { name: 'פיתוח תוכנה מבוסס בינה מלאכותית', code: 'CS302', credits: 3 },
+      { name: 'מבוא ללמידת מכונה', code: 'CS303', credits: 4 },
+      { name: 'למידה עמוקה', code: 'CS304', credits: 3 },
+      { name: 'מבוא לאותות ומערכות', code: 'EE101', credits: 3 },
+      { name: 'מבוא לביולוגיה חישובית', code: 'BIO101', credits: 3 },
+      { name: 'מבוא להסתברות ולסטטיסטיקה', code: 'STAT101', credits: 2.5 },
+      { name: 'בסיסי נתונים', code: 'CS110', credits: 3.5 },
+      { name: 'אלגוריתמים מבוזרים', code: 'CS206', credits: 3 },
+      { name: 'ניהול ושיווק עסקים קטנים', code: 'BUS101', credits: 2 },
+      { name: 'ניהול ושיווק עסקים קטנים', code: 'BUS102', credits: 2 },
+      { name: 'עיצוב ממשק משתמש', code: 'CS111', credits: 2 },
+      { name: 'פרויקט יישומי: אלגוריתמים', code: 'CS401', credits: 4 },
+      { name: 'פרויקט יישומי: בינה מלאכותית', code: 'CS402', credits: 4 },
+      { name: 'תכנות מתקדם בשפת פייתון', code: 'CS112', credits: 3 }
+    ],
+
+    nursing: [
+      { name: 'אנטומיה', code: 'NUR101', credits: 4 },
+      { name: 'פיזיולוגיה', code: 'NUR102', credits: 4 },
+      { name: 'יסודות הסיעוד', code: 'NUR201', credits: 5 },
+      { name: 'בריאות הציבור', code: 'NUR202', credits: 3 },
+      { name: 'סיעוד קליני', code: 'NUR301', credits: 5 }
+    ],
+
+    business: [
+      { name: 'מבוא לכלכלה', code: 'BUS201', credits: 3 },
+      { name: 'יסודות השיווק', code: 'BUS202', credits: 3 },
+      { name: 'ניהול פיננסי', code: 'BUS301', credits: 4 },
+      { name: 'התנהגות ארגונית', code: 'BUS302', credits: 3 },
+      { name: 'יזמות עסקית', code: 'BUS401', credits: 3 }
+    ]
+  },
+
+  'Ruppin Academic Center': {
+    cs: [
+      { name: 'מבוא למדעי המחשב', code: 'RUP101', credits: 5 },
+      { name: 'מבני נתונים', code: 'RUP201', credits: 4 },
+      { name: 'אלגוריתמים', code: 'RUP301', credits: 4 },
+      { name: 'בסיסי נתונים', code: 'RUP302', credits: 3.5 },
+      { name: 'פיתוח Web', code: 'RUP303', credits: 3 }
+    ],
+
+    nursing: [
+      { name: 'אנטומיה', code: 'NUR101', credits: 4 },
+      { name: 'פיזיולוגיה', code: 'NUR102', credits: 4 },
+      { name: 'יסודות הסיעוד', code: 'NUR201', credits: 5 },
+      { name: 'בריאות הציבור', code: 'NUR202', credits: 3 },
+      { name: 'סיעוד קליני', code: 'NUR301', credits: 5 }
+    ],
+
+    business: [
+      { name: 'מבוא לכלכלה', code: 'BUS201', credits: 3 },
+      { name: 'יסודות השיווק', code: 'BUS202', credits: 3 },
+      { name: 'ניהול פיננסי', code: 'BUS301', credits: 4 },
+      { name: 'התנהגות ארגונית', code: 'BUS302', credits: 3 },
+      { name: 'יזמות עסקית', code: 'BUS401', credits: 3 }
+    ]
+  },
+
+  'Peres Academic Center': {
+    cs: [
+      { name: 'מבוא למדעי המחשב', code: 'PER101', credits: 5 },
+      { name: 'תכנות מונחה עצמים', code: 'PER201', credits: 4.5 },
+      { name: 'מבני נתונים', code: 'PER202', credits: 4 },
+      { name: 'מבוא לבינה מלאכותית', code: 'PER301', credits: 4 },
+      { name: 'עיצוב ממשק משתמש', code: 'PER302', credits: 2.5 }
+    ],
+
+    nursing: [
+      { name: 'אנטומיה', code: 'NUR101', credits: 4 },
+      { name: 'פיזיולוגיה', code: 'NUR102', credits: 4 },
+      { name: 'יסודות הסיעוד', code: 'NUR201', credits: 5 },
+      { name: 'בריאות הציבור', code: 'NUR202', credits: 3 },
+      { name: 'סיעוד קליני', code: 'NUR301', credits: 5 }
+    ],
+
+    business: [
+      { name: 'מבוא לכלכלה', code: 'BUS201', credits: 3 },
+      { name: 'יסודות השיווק', code: 'BUS202', credits: 3 },
+      { name: 'ניהול פיננסי', code: 'BUS301', credits: 4 },
+      { name: 'התנהגות ארגונית', code: 'BUS302', credits: 3 },
+      { name: 'יזמות עסקית', code: 'BUS401', credits: 3 }
+    ]
+  }
+};
 
   const INSTITUTION_LOGO_B64 = "data:image/png;base64,"; // placeholder — real logo injected below
 
@@ -956,6 +1030,12 @@
       showAlert('wizard-alert2', `Joined ${joined} course(s). ${errors} failed — try again.`, joined ? 'info' : 'error');
     }
     loadCourses();
+
+    // Collapse the course list after a successful join (Fix 1)
+    if (joined > 0) {
+      const step3 = document.getElementById('wizard-step-3');
+      if (step3) step3.style.display = 'none';
+    }
   }
 
   // ── Legacy stubs (keep other code working) ────────────────────────────────
@@ -1403,8 +1483,8 @@ You will be removed from this course. The course and its content will remain for
   function showHub(courseId, courseName) {
     currentHubCourseId   = courseId;
     currentHubCourseName = courseName;
-    localStorage.setItem('ssp_hub_id',   courseId);
-    localStorage.setItem('ssp_hub_name', courseName);
+    sessionStorage.setItem('ssp_hub_id',   courseId);
+    sessionStorage.setItem('ssp_hub_name', courseName);
     document.getElementById('hub-course-title').textContent = courseName;
     switchHubTab('chat');
     showPage('hub-page');
@@ -1513,7 +1593,7 @@ You will be removed from this course. The course and its content will remain for
             <div class="mat-footer">
               ${accessBtn}
               <span style="font-size:.8rem;color:var(--text-muted)">by ${esc(m.username)}</span>
-              <button class="upvote-btn" onclick="upvoteMaterial('${m._id}', this)">
+              <button class="upvote-btn${m.upvoted_by && m.upvoted_by.includes(currentUser) ? ' voted' : ''}" onclick="upvoteMaterial('${m._id}', this)" title="${m.upvoted_by && m.upvoted_by.includes(currentUser) ? 'Click to remove your upvote' : 'Upvote'}">
                 &#9650; Upvote <span class="badge">${m.upvotes}</span>
               </button>
               <button class="report-btn" onclick="reportItem('material', '${m._id}')">&#9873; Report</button>
@@ -1587,11 +1667,19 @@ You will be removed from this course. The course and its content will remain for
   }
 
   async function upvoteMaterial(id, btn) {
+    if (!currentUser) return;
     try {
-      const { ok, data } = await api('PUT', `/hub/materials/${id}/upvote`);
+      const { ok, data } = await api('PUT', `/hub/materials/${id}/upvote`, { username: currentUser });
       if (ok) {
         const badge = btn.querySelector('.badge');
         if (badge) badge.textContent = data.upvotes;
+        if (data.voted) {
+          btn.classList.add('voted');
+          btn.title = 'Click to remove your upvote';
+        } else {
+          btn.classList.remove('voted');
+          btn.title = 'Upvote';
+        }
       }
     } catch (err) { /* silent */ }
   }
@@ -1707,7 +1795,7 @@ You will be removed from this course. The course and its content will remain for
             <div class="a-meta">
               <span>by ${esc(a.username)}</span>
               <span>${time}</span>
-              <button class="helpful-btn" onclick="markHelpful('${a._id}', this)">
+              <button class="helpful-btn${a.helpful_by && a.helpful_by.includes(currentUser) ? ' voted' : ''}" onclick="markHelpful('${a._id}', this)" title="${a.helpful_by && a.helpful_by.includes(currentUser) ? 'Click to remove your helpful vote' : 'Mark as helpful'}">
                 &#128077; Helpful <span class="badge">${a.helpful_count}</span>
               </button>
               <button class="report-btn" onclick="reportItem('answer', '${a._id}')">&#9873; Report</button>
@@ -1744,11 +1832,19 @@ You will be removed from this course. The course and its content will remain for
   }
 
   async function markHelpful(aid, btn) {
+    if (!currentUser) return;
     try {
-      const { ok, data } = await api('PUT', `/hub/answers/${aid}/helpful`);
+      const { ok, data } = await api('PUT', `/hub/answers/${aid}/helpful`, { username: currentUser });
       if (ok) {
         const badge = btn.querySelector('.badge');
         if (badge) badge.textContent = data.helpful_count;
+        if (data.voted) {
+          btn.classList.add('voted');
+          btn.title = 'Click to remove your helpful vote';
+        } else {
+          btn.classList.remove('voted');
+          btn.title = 'Mark as helpful';
+        }
       }
     } catch (err) { /* silent */ }
   }
@@ -1761,100 +1857,27 @@ You will be removed from this course. The course and its content will remain for
       type, item_id: itemId, reported_by: currentUser, reason, course_id: currentHubCourseId
     });
     if (ok) alert('Report submitted. Thank you.');
-    else alert(data.error || 'Failed to submit report.');
+    else alert(data.error || 'Failed to report.');
   }
 
-  // -- Activity Feed ─────────────────────────────────────────────────────────
-
-  async function loadHubActivity() {
-    if (!currentHubCourseId) return;
-    const list = document.getElementById('activity-list');
-    try {
-      const { ok, data } = await api('GET', `/hub/${encodeURIComponent(currentHubCourseId)}/activity?username=${encodeURIComponent(currentUser)}`);
-      if (!ok) { list.innerHTML = '<div class="empty">Could not load activity.</div>'; return; }
-      if (!data.length) {
-        list.innerHTML = '<div class="empty"><div class="empty-icon">&#9889;</div>No activity yet in this course hub.</div>';
-        return;
-      }
-      list.innerHTML = data.map(item => {
-        const time = new Date(item.created_at + 'Z').toLocaleString('en-GB', {
-          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-        });
-        let icon = '&#128172;', typeClass = 'activity-chat', label = 'Chat';
-        if (item.type === 'question') { icon = '&#10067;';  typeClass = 'activity-question'; label = 'Q&amp;A'; }
-        else if (item.type === 'file') { icon = '&#128196;'; typeClass = 'activity-file';     label = 'File'; }
-        else if (item.type === 'url')  { icon = '&#127758;'; typeClass = 'activity-url';      label = 'Link'; }
-
-        let body = '';
-        if (item.type === 'chat') {
-          body = `<div style="font-size:.92rem;margin-top:4px;word-break:break-word">${esc(item.text || '')}</div>`;
-        } else if (item.type === 'question') {
-          body = `<div style="font-size:.92rem;font-weight:600;margin-top:4px">${esc(item.question || '')}</div>`;
-        } else if (item.type === 'file' || item.type === 'url') {
-          const titleStr = esc(item.title || '');
-          let accessBtn = '';
-          if (item.type === 'file' && item.file_id) {
-            accessBtn = ` <a href="${API}/hub/materials/file/${esc(item.file_id)}" target="_blank"
-              rel="noopener" style="font-size:.8rem;color:#1d4ed8">Open File</a>`;
-          } else if (item.type === 'url' && item.link) {
-            accessBtn = ` <a href="${esc(item.link)}" target="_blank"
-              rel="noopener" style="font-size:.8rem;color:var(--blue)">Open Link</a>`;
-          }
-          body = `<div style="font-size:.92rem;font-weight:600;margin-top:4px">${titleStr}${accessBtn}</div>`;
-          if (item.description) {
-            body += `<div style="font-size:.83rem;color:var(--text-muted)">${esc(item.description)}</div>`;
-          }
-        }
-
-        return `
-          <div class="activity-card ${typeClass}">
-            <div style="font-size:.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">
-              ${icon} ${label}
-            </div>
-            ${body}
-            <div class="activity-meta">
-              <span>by ${esc(item.username)}</span>
-              <span>${time}</span>
-            </div>
-          </div>`;
-      }).join('');
-    } catch (err) {
-      list.innerHTML = '<div class="empty">Error loading activity.</div>';
-    }
-  }
-
-  // ── Init ──────────────────────────────────
-
-  // Hide protected nav items before session check
-  ['nav-dashboard', 'nav-courses', 'nav-assignments', 'nav-exams', 'nav-plan', 'nav-hub']
-    .forEach(id => document.getElementById(id).style.display = 'none');
-
-  // Restore session + last page from localStorage on every page load
+  // ── Init / Session Restore ────────────────────────────────────────────────────────────────────────────────────────
   (function restoreSession() {
-    const savedUser = localStorage.getItem('ssp_user');
+    const savedUser = sessionStorage.getItem('ssp_user');
     if (!savedUser) { showPage('auth-page'); return; }
-
     applySession(savedUser);
-
-    const savedPage = localStorage.getItem('ssp_page') || 'dashboard-page';
-
+    const savedPage = sessionStorage.getItem('ssp_page') || 'dashboard-page';
     if (savedPage === 'hub-page') {
-      const hubId   = localStorage.getItem('ssp_hub_id');
-      const hubName = localStorage.getItem('ssp_hub_name');
+      const hubId   = sessionStorage.getItem('ssp_hub_id');
+      const hubName = sessionStorage.getItem('ssp_hub_name');
       if (hubId && hubName) {
         currentHubCourseId   = hubId;
         currentHubCourseName = hubName;
         document.getElementById('hub-course-title').textContent = hubName;
         switchHubTab('chat');
         showPage('hub-page');
-      } else {
-        showPage('dashboard-page');
-      }
-    } else {
-      showPage(savedPage);
-    }
+      } else { showPage('dashboard-page'); }
+    } else { showPage(savedPage); }
   })();
-
 </script>
 </body>
 </html>

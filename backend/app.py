@@ -897,15 +897,32 @@ def post_hub_material(course_id):
  
 @app.route("/hub/materials/<material_id>/upvote", methods=["PUT"])
 def upvote_material(material_id):
-    """Increment upvote count for a shared material."""
+    """Toggle upvote for a shared material (one vote per user)."""
+    data     = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username is required"}), 400
     oid = parse_oid(material_id)
     if not oid:
         return jsonify({"error": "Invalid material id"}), 400
-    result = db.hub_materials.update_one({"_id": oid}, {"$inc": {"upvotes": 1}})
-    if result.matched_count == 0:
+    mat = db.hub_materials.find_one({"_id": oid}, {"upvotes": 1, "upvoted_by": 1})
+    if mat is None:
         return jsonify({"error": "Material not found"}), 404
+    already_voted = username in mat.get("upvoted_by", [])
+    if already_voted:
+        db.hub_materials.update_one(
+            {"_id": oid},
+            {"$inc": {"upvotes": -1}, "$pull": {"upvoted_by": username}}
+        )
+        voted = False
+    else:
+        db.hub_materials.update_one(
+            {"_id": oid},
+            {"$inc": {"upvotes": 1}, "$addToSet": {"upvoted_by": username}}
+        )
+        voted = True
     mat = db.hub_materials.find_one({"_id": oid}, {"upvotes": 1})
-    return jsonify({"upvotes": mat["upvotes"]}), 200
+    return jsonify({"upvotes": mat.get("upvotes", 0), "voted": voted}), 200
  
  
 # == Q&A ======================================================================
@@ -997,15 +1014,32 @@ def post_hub_answer(question_id):
  
 @app.route("/hub/answers/<answer_id>/helpful", methods=["PUT"])
 def mark_answer_helpful(answer_id):
-    """Increment helpful_count for an answer."""
+    """Toggle helpful vote for an answer (one vote per user)."""
+    data     = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username is required"}), 400
     oid = parse_oid(answer_id)
     if not oid:
         return jsonify({"error": "Invalid answer id"}), 400
-    result = db.hub_answers.update_one({"_id": oid}, {"$inc": {"helpful_count": 1}})
-    if result.matched_count == 0:
+    ans = db.hub_answers.find_one({"_id": oid}, {"helpful_count": 1, "helpful_by": 1})
+    if ans is None:
         return jsonify({"error": "Answer not found"}), 404
+    already_voted = username in ans.get("helpful_by", [])
+    if already_voted:
+        db.hub_answers.update_one(
+            {"_id": oid},
+            {"$inc": {"helpful_count": -1}, "$pull": {"helpful_by": username}}
+        )
+        voted = False
+    else:
+        db.hub_answers.update_one(
+            {"_id": oid},
+            {"$inc": {"helpful_count": 1}, "$addToSet": {"helpful_by": username}}
+        )
+        voted = True
     ans = db.hub_answers.find_one({"_id": oid}, {"helpful_count": 1})
-    return jsonify({"helpful_count": ans["helpful_count"]}), 200
+    return jsonify({"helpful_count": ans.get("helpful_count", 0), "voted": voted}), 200
  
  
 # == Activity Feed ============================================================
