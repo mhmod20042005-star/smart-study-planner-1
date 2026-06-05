@@ -549,7 +549,6 @@
       <button id="htab-chat"      class="active" onclick="switchHubTab('chat')"      >&#128172; Chat</button>
       <button id="htab-materials"               onclick="switchHubTab('materials')"  >&#128206; Materials</button>
       <button id="htab-qa"                      onclick="switchHubTab('qa')"         >&#10067; Q&amp;A</button>
-      <button id="htab-activity"                onclick="switchHubTab('activity')"   >&#9889; Activity</button>
     </div>
 
     <!-- CHAT panel -->
@@ -632,17 +631,6 @@
       </div>
       <div id="qa-list">
         <div class="empty"><div class="empty-icon">&#10067;</div>No questions yet.</div>
-      </div>
-    </div>
-
-    <!-- Activity panel -->
-    <div class="hub-tab-panel" id="hub-panel-activity">
-      <div style="margin-bottom:14px">
-        <button class="btn btn-sm" style="background:var(--grey-bg);border:1px solid var(--grey-border)"
-                onclick="loadHubActivity()">&#8635; Refresh Activity</button>
-      </div>
-      <div id="activity-list">
-        <div class="empty"><div class="empty-icon">&#9889;</div>No activity yet in this course hub.</div>
       </div>
     </div>
 
@@ -1511,7 +1499,7 @@ You will be removed from this course. The course and its content will remain for
 
   function switchHubTab(tab) {
     currentHubTab = tab;
-    ['chat', 'materials', 'qa', 'activity'].forEach(t => {
+    ['chat', 'materials', 'qa'].forEach(t => {
       const btn = document.getElementById(`htab-${t}`);
       const pnl = document.getElementById(`hub-panel-${t}`);
       if (btn) btn.classList.toggle('active', t === tab);
@@ -1520,7 +1508,6 @@ You will be removed from this course. The course and its content will remain for
     if (tab === 'chat')      loadHubMessages();
     if (tab === 'materials') loadHubMaterials();
     if (tab === 'qa')        loadHubQuestions();
-    if (tab === 'activity')  loadHubActivity();
   }
 
   // ── Chat ──────────────────────────────────────────────────────────────────
